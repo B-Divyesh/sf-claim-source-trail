@@ -3,9 +3,28 @@
   "title": "Claim Source Trail",
   "territory": "utilities",
   "user": "Undergraduate humanities and social-science students learning digital research workflows who need to practice attaching a claim to an exact source location and a reason it supports the claim.",
+  "evidence": [
+    {
+      "url": "https://hn.algolia.com/api/v1/items/48422480",
+      "date": "2026-06-06",
+      "quote_or_summary": "An instructor asks how to teach digital research workflows to undergraduate philosophy students, specifically seeking open, open-access, free tools and presentation guidance."
+    },
+    {
+      "url": "https://github.com/zotero/zotero/issues/6001",
+      "date": "2026-07-13",
+      "quote_or_summary": "A Zotero issue requests page-number suggestions in the citation dialog for open documents, showing that even citation tooling lacks a smooth exact-location handoff."
+    }
+  ],
+  "recurrence": "Teaching digital research is explicitly current, while a current citation-tool request shows the practical friction at the source-location step where student evidence trails often fail.",
+  "current_workaround": "Keep a document of copied quotes, use Zotero notes with loose annotations, or add citations only when drafting the final essay.",
+  "incumbents_and_gap": "Zotero manages references and Google Docs formats citations; neither teaches or validates the small reasoning chain claim → exact locator → paraphrase → why it supports the claim.",
   "smallest_useful_product": "Privacy-first web app with a four-field claim card, DOI/URL/author citation metadata, page/section locator, counterevidence flag, and export to Markdown/CSV.",
   "success_measure": "In one classroom pilot, 75% of submitted claims include a verifiable locator and instructor spot checks find fewer than 10% unsupported claim-source links.",
   "artifact_class": "web-with-backend",
   "monetization": "freemium",
-  "constraints": "Store citations and learner notes only with clear deletion; respect publisher access/copyright; avoid claims of truth verification; WCAG-friendly keyboard workflow."
+  "constraints": "Store citations and learner notes only with clear deletion; respect publisher access/copyright; avoid claims of truth verification; WCAG-friendly keyboard workflow.",
+  "est_build_effort": "M",
+  "why_distinct": "It teaches evidentiary reasoning at the claim level instead of becoming an AI essay writer or another bibliography manager.",
+  "confidence": 5,
+  "state": "RESEARCHED"
 }
