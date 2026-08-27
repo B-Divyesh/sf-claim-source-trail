@@ -34,11 +34,34 @@ test('creates, completes, and exports a claim trail', async ({ page }) => {
 });
 
 test('home and editor have no serious accessibility violations', async ({ page }) => {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   let results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.filter((item) => ['serious', 'critical'].includes(item.impact || ''))).toEqual([]);
   await page.getByRole('button', { name: 'Build a claim trail' }).click();
   results = await new AxeBuilder({ page }).include('#trail-dialog').analyze();
   expect(results.violations.filter((item) => ['serious', 'critical'].includes(item.impact || ''))).toEqual([]);
+});
+
+test('keyboard opens and dismisses the editor without losing focus', async ({ page }) => {
+  const trigger = page.getByRole('button', { name: 'Build a claim trail' });
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByLabel('Arguable claim Required')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(trigger).toBeFocused();
+});
+
+test('cached workspace opens offline', async ({ page, context }) => {
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1, name: 'Make every claim traceable.' })).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new Event('offline')));
+  await expect(page.getByText('Offline — your local workspace and exports still work.')).toBeVisible();
+  await context.setOffline(false);
 });
 
 test('legal routes are real, readable pages', async ({ page }) => {

@@ -10,8 +10,14 @@ use axum::{
 use serde::Serialize;
 use sqlx::SqlitePool;
 use std::path::PathBuf;
-use tower_http::{services::{ServeDir, ServeFile}, set_header::SetResponseHeaderLayer, trace::TraceLayer};
-use tower_governor::{governor::GovernorConfigBuilder, key_extractor::GlobalKeyExtractor, GovernorLayer};
+use tower_governor::{
+    governor::GovernorConfigBuilder, key_extractor::GlobalKeyExtractor, GovernorLayer,
+};
+use tower_http::{
+    services::{ServeDir, ServeFile},
+    set_header::SetResponseHeaderLayer,
+    trace::TraceLayer,
+};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -77,7 +83,7 @@ pub fn app(pool: SqlitePool, dist_dir: PathBuf) -> Router {
     let api = Router::new()
         .route("/api/page-view", post(page_view))
         .layer(GovernorLayer::new(page_view_limit));
-    let spa = ServeDir::new(&dist_dir).not_found_service(ServeFile::new(dist_dir.join("index.html")));
+    let spa = ServeDir::new(&dist_dir).fallback(ServeFile::new(dist_dir.join("index.html")));
     Router::new()
         .route("/health", get(health))
         .merge(api)
@@ -111,7 +117,11 @@ mod tests {
     use tower::ServiceExt;
 
     async fn test_app() -> (Router, SqlitePool) {
-        let pool = SqlitePoolOptions::new().max_connections(1).connect("sqlite::memory:").await.unwrap();
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
         migrate(&pool).await.unwrap();
         (app(pool.clone(), PathBuf::from("dist")), pool)
     }
@@ -119,28 +129,90 @@ mod tests {
     #[tokio::test]
     async fn health_reports_build() {
         let (app, _) = test_app().await;
-        let response = app.oneshot(Request::builder().uri("/health").body(Body::empty()).unwrap()).await.unwrap();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(response.headers()[header::X_CONTENT_TYPE_OPTIONS], "nosniff");
+        assert_eq!(
+            response.headers()[header::X_CONTENT_TYPE_OPTIONS],
+            "nosniff"
+        );
     }
 
     #[tokio::test]
     async fn page_view_increments_only_aggregate_day() {
         let (app, pool) = test_app().await;
         for _ in 0..2 {
-            let response = app.clone().oneshot(Request::builder().method("POST").uri("/api/page-view").body(Body::empty()).unwrap()).await.unwrap();
+            let response = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .method("POST")
+                        .uri("/api/page-view")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
             assert_eq!(response.status(), StatusCode::NO_CONTENT);
         }
-        let count: i64 = sqlx::query_scalar("SELECT count FROM page_views LIMIT 1").fetch_one(&pool).await.unwrap();
+        let count: i64 = sqlx::query_scalar("SELECT count FROM page_views LIMIT 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
         assert_eq!(count, 2);
-        let columns: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM pragma_table_info('page_views')").fetch_one(&pool).await.unwrap();
+        let columns: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM pragma_table_info('page_views')")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
         assert_eq!(columns, 2);
     }
 
     #[tokio::test]
     async fn api_rejects_wrong_method() {
         let (app, _) = test_app().await;
-        let response = app.oneshot(Request::builder().uri("/api/page-view").body(Body::empty()).unwrap()).await.unwrap();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/page-view")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
+    }
+
+    #[tokio::test]
+    async fn spa_routes_return_index_with_success_status() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        migrate(&pool).await.unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::write(
+            directory.path().join("index.html"),
+            "<!doctype html><title>App</title>",
+        )
+        .unwrap();
+        let response = app(pool, directory.path().to_path_buf())
+            .oneshot(
+                Request::builder()
+                    .uri("/privacy")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
     }
 }

@@ -366,10 +366,11 @@ function saveKitSettings(): void {
   saveSettings(settings); announce('Instructor settings saved locally.');
 }
 
-function updateOnlineState(): void {
+function updateOnlineState(event?: Event): void {
   let banner = document.querySelector<HTMLElement>('#offline-banner');
-  if (!navigator.onLine && !banner) { banner = document.createElement('div'); banner.id = 'offline-banner'; banner.className = 'offline-banner'; banner.setAttribute('role', 'status'); banner.textContent = 'Offline — your local workspace and exports still work.'; document.body.prepend(banner); }
-  if (navigator.onLine) banner?.remove();
+  const isOffline = event?.type === 'offline' || !navigator.onLine;
+  if (isOffline && !banner) { banner = document.createElement('div'); banner.id = 'offline-banner'; banner.className = 'offline-banner'; banner.setAttribute('role', 'status'); banner.textContent = 'Offline — your local workspace and exports still work.'; document.body.prepend(banner); }
+  if (!isOffline) banner?.remove();
 }
 
 render();

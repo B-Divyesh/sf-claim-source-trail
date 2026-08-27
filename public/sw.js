@@ -1,8 +1,17 @@
-const CACHE = 'claim-source-trail-v1';
-const SHELL = ['/', '/privacy', '/terms', '/assets/hero-trail.webp', '/assets/hero-trail-640.webp'];
+const CACHE = 'claim-source-trail-v2';
+const SHELL = [
+  '/', '/privacy', '/terms',
+  '/assets/hero-trail.webp', '/assets/hero-trail-640.webp',
+  '/fonts/atkinson-400.woff2', '/fonts/atkinson-700.woff2'
+];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
+  event.waitUntil(caches.open(CACHE).then(async (cache) => {
+    await cache.addAll(SHELL);
+    const html = await fetch('/').then((response) => response.text());
+    const builtAssets = [...html.matchAll(/(?:src|href)="(\/assets\/[^\"]+)"/g)].map((match) => match[1]);
+    await Promise.all([...new Set(builtAssets)].map((asset) => cache.add(asset).catch(() => undefined)));
+  }));
   self.skipWaiting();
 });
 
