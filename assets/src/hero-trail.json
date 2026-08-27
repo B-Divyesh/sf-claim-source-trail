@@ -1,0 +1,7 @@
+{
+  "asset": "hero-trail.png",
+  "model": "factory-image (Azure OpenAI image deployment)",
+  "date": "2026-08-27",
+  "prompt": "Top-down editorial still life of a student research desk in a bold neo-brutalist paper-cut collage style. One blank cream index card, an open book with abstract non-readable line marks, a bright yellow page tab, and a small reasoning note connected by one thick cobalt-blue trail. Black ink outlines, warm off-white paper background, signal yellow and muted coral accents, crisp hard side lighting, slight paper texture, deliberate imperfect cut edges, flat 35mm composition. No people, no hands, no text, no letters, no numbers, no logos, no watermark, no brand symbols, no gradients, no photoreal UI.",
+  "review": "Accepted: no people, logos, watermarks, readable synthetic text, or misleading interface elements."
+}

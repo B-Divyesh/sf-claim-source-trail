@@ -1,0 +1,11 @@
+{
+  "slug": "claim-source-trail",
+  "title": "Claim Source Trail",
+  "territory": "utilities",
+  "user": "Undergraduate humanities and social-science students learning digital research workflows who need to practice attaching a claim to an exact source location and a reason it supports the claim.",
+  "smallest_useful_product": "Privacy-first web app with a four-field claim card, DOI/URL/author citation metadata, page/section locator, counterevidence flag, and export to Markdown/CSV.",
+  "success_measure": "In one classroom pilot, 75% of submitted claims include a verifiable locator and instructor spot checks find fewer than 10% unsupported claim-source links.",
+  "artifact_class": "web-with-backend",
+  "monetization": "freemium",
+  "constraints": "Store citations and learner notes only with clear deletion; respect publisher access/copyright; avoid claims of truth verification; WCAG-friendly keyboard workflow."
+}
