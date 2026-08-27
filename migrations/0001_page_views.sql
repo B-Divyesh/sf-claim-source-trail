@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS page_views (
+  day TEXT PRIMARY KEY NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0 CHECK (count >= 0)
+);
