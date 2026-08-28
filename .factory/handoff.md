@@ -1,5 +1,66 @@
 # Claim Source Trail — build handoff
 
+## Repair 2 — 2026-08-28
+
+**PASS — the release-blocking findings in independent verifier report commit
+`4c92b7b757292269f7154b103cdfd7c8732625d0` are repaired and deployed.**
+The deployed application source commit is
+`0223ccea4f0b3a2f501593e9f416877499b719d8` (`fix: clear all local data and
+restore contrast`). The original local-first workflow, Rust/Axum container
+artifact class, paid-license contract, and researched brief are unchanged.
+
+### Repairs
+
+- **P1 privacy/deletion:** “Delete all local data” now removes every
+  product-owned localStorage namespace: saved trails/settings, the daily
+  page-count marker, `sb_license:claim-source-trail`, and its cached verdict.
+  It also clears the in-memory Instructor kit state immediately. A completed
+  billing verification cannot recreate a verdict if deletion (or token
+  replacement) happened while the request was in flight.
+- **P1 accessibility:** counterevidence uses `#BD3D2A` rather than `#D94F36`.
+  White label text is now **5.44:1**, and the design thesis records the
+  measured contrast.
+- **P3 font caching:** versioned self-hosted font URLs are preloaded and served
+  with `Cache-Control: public, max-age=31536000, immutable`; this also removes
+  the first-load font-swap layout shift found during repair QA.
+
+### Exact regression coverage
+
+- Storage unit test seeds trail/settings, license token, cached verdict, and
+  page marker; it proves complete product-key deletion while retaining an
+  unrelated product key.
+- License unit test proves a verification response in flight cannot restore a
+  deleted verdict.
+- The Playwright suite saves a real counterevidence card and runs axe against
+  that persisted card, then tests the native-confirmed “Delete all local data”
+  action in both desktop and 390px projects and asserts no product-owned keys
+  remain.
+- Rust integration test verifies versioned WOFF2 delivery gets immutable
+  caching.
+
+### Fresh verification
+
+| Check | Result |
+| --- | --- |
+| Clean install / dependency audit | `npm ci` completed; `npm audit --omit=dev` found 0 vulnerabilities. |
+| Unit + integration | `npm test`: Vitest **3 files / 10 tests**; Rust **5 tests** plus doc tests, all passed. |
+| Type / production build | `npm run build` passed `tsc --noEmit`, Vite, and Cargo release. |
+| Bundle budgets | JS **26.87 KB raw / 9.38 KB gzip**; CSS **14.64 KB raw / 3.97 KB gzip**; fonts **34.73 KB**; mobile hero **31.99 KB** — all within budget. |
+| Browser / keyboard / offline / update | `BASE_URL=http://127.0.0.1:18080 npm run test:e2e`: **14/14** passed across desktop and 390×844 mobile, including create/edit/export, native delete confirmation, keyboard dialog focus, reduced-motion, offline cached reload, legal routes, and service-worker registration. |
+| Axe | Home, editor, and persisted counterevidence card: 0 serious/critical issues in both browser projects. |
+| Local response/privacy policy | `/`, `/privacy`, `/terms`, `/sw.js`, `robots.txt`, and versioned fonts returned 200; only same-origin product resources are used; GET `/api/page-view` returned 405 and POST returned 204; CSP, nosniff, DENY frame, and strict referrer headers present. |
+| Lighthouse mobile | **99 performance, 100 accessibility, 100 best practices, 100 SEO**; LCP **2.0 s**, CLS **0**, TBT **0 ms**. |
+| Public smoke | `verify-url.sh https://claim-source-trail.sociobot.in`: HTTP 200 in 608 ms, title/lang/one h1/main present, 0 missing image alts, 0 unlabeled buttons, 0 console/page errors. |
+| Live identity / headers | `/health` returned `{"status":"ok","build":"0223ccea4f0b3a2f501593e9f416877499b719d8"}`. Live versioned WOFF2 returned one-year immutable caching; shell/service worker retain `no-cache`; security headers and CSP are present. |
+
+### Deployment
+
+- Container App: `sf-claim-source-trail--0000004`, provisioning state
+  `Succeeded`.
+- Image: `sociobotregistry.azurecr.io/sf-claim-source-trail:0223ccea4f0b`
+  (`sha256:5b721fb0c021886be4b1cad7452af088f1568842905e525e6563edd39e570344`).
+- Public URL: <https://claim-source-trail.sociobot.in>.
+
 ## Independent verification 2 — 2026-08-28
 
 **FAIL — candidate `c25f12c0ec3a0ec681ab4a1773c37abd3e3b04a5` at
