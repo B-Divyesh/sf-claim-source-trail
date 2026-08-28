@@ -1,5 +1,84 @@
 # Claim Source Trail — build handoff
 
+## Repair 3 — 2026-08-28
+
+**PASS — every finding in independent verifier report commit
+`dace53aaa5eebc9a8410060d70da5955391f5c44` is repaired, covered, and
+deployed.** The implementation repair is commit
+`e30045ca1ae81ddf427ca7b30e4aea5ef69d3aba`. The researched brief,
+neo-brutalist research-desk system, local-first workflow, free exports,
+Sociobot license contract, Rust/Axum container, and existing passing behavior
+are preserved.
+
+### Repairs
+
+- **P1 boundary responsiveness:** all saved user metadata now has explicit
+  grid shrink containment and arbitrary-token wrapping. The verifier's maximum
+  unbroken case now measures 390px document width in a 390px viewport and
+  1,440px at 1,440px, instead of 3,037px and 3,169px.
+- **P1 touch targets:** the wordmark, persistent navigation, purchase/legal
+  links, footer links, and saved source links now expose at least 44×44 CSS px
+  hit areas. A full visible-interactive scan at 390px found zero undersized
+  targets; the wrapped maximum-length source link measured 316×202.5px.
+- **P2 corrupt-data recovery:** an unreadable trail payload now renders a
+  focused, actionable error with “Delete all local data.” Confirmation clears
+  the corrupt value and all other product-owned keys and restores the empty
+  workspace without requiring browser settings.
+- **P2 keyboard contract:** Ctrl+Enter and Cmd+Enter submit the trail editor
+  from any form field through native form validation and the existing save
+  path.
+- **P3 response policy:** every Axum response now includes
+  `Strict-Transport-Security: max-age=31536000; includeSubDomains` and a
+  restrictive `Permissions-Policy` disabling camera, geolocation, microphone,
+  payment, and USB capabilities.
+
+### Exact regression coverage
+
+- Playwright saves 600/300/200/500/180/1,200-character unbroken boundary
+  values, asserts the document and each metadata cell stay inside both desktop
+  and 390px viewports, and measures the saved source-link target.
+- Playwright measures all visible wordmark, header, purchase/legal, and footer
+  link rectangles and rejects any dimension below 44px.
+- Playwright seeds malformed trail JSON, reloads, uses the in-product deletion
+  control, and proves the corrupt key and error state are gone.
+- Playwright invokes Ctrl/Cmd+Enter from a text field and proves the dialog
+  closes and the saved card appears.
+- The Rust route test asserts exact HSTS and Permissions-Policy values.
+
+### Fresh verification evidence
+
+| Check | Result |
+| --- | --- |
+| Clean dependencies | `npm ci`, `npm audit`, and `npm audit --omit=dev` passed; 0 vulnerabilities. Playwright is pinned to 1.58.2. |
+| Unit/integration/type/lint | `npm test`: Vitest 3 files / 10 tests and Rust 5 tests plus doc tests passed. `cargo fmt --all -- --check`, strict Clippy, and `tsc --noEmit` passed. |
+| Production build | `npm run build` produced `dist/`; JS 27,126 B raw / 9.47 KB gzip, CSS 14,983 B raw / 4.04 KB gzip, fonts 34,732 B, mobile hero 31,994 B. |
+| Local and live browser | **22/22** passed on each target across desktop and 390×844, including create/edit/export, deletion, corrupt recovery, boundary layout, touch targets, keyboard focus/shortcut, axe, legal routes, offline reload, and service-worker registration. |
+| Accessibility | Axe found 0 serious/critical issues on home, editor, and persisted counterevidence in both projects. Factory `verify-url.sh` found title, `lang=en`, one h1, main, alt text, labeled buttons, and 0 console/page errors. |
+| Privacy/PWA | A clean live load contacted only the product origin; its only non-GET was bodyless `POST /api/page-view`. The active root-scoped worker used cache `claim-source-trail-v2`, had no waiting update, and served the h1 offline. |
+| Response policy | Root, health, privacy, terms, service worker, robots, and fonts returned 200. GET/OPTIONS page-view returned 405 and POST returned 204. HTTP returned a permanent HTTPS redirect; HSTS, Permissions-Policy, CSP, referrer, frame, and MIME policies were present. |
+| Lighthouse mobile | Local: **100 performance / 100 accessibility / 100 best practices / 100 SEO**, LCP 1.76s, CLS 0, TBT 0ms. Live: **100/100/100/100**, LCP 1.50s, CLS 0, TBT 0ms. |
+| Load smoke | Live `/health`, 100 connections for five seconds: 39k requests, 7,838 req/s average, 12.29ms average latency, 52ms p99, no reported failures. |
+
+### Deployment evidence
+
+- Azure Container Apps revision `sf-claim-source-trail--0000006` reached
+  `Succeeded` from the factory's ACR cloud build.
+- Image:
+  `sociobotregistry.azurecr.io/sf-claim-source-trail:e30045ca1ae8`
+  (`sha256:ff9c4e46f1e4134e69336f694e93af4e86e91cc328aabfbe7b36a3e0307155fe`).
+- Public `/health` returned the full implementation SHA above. Live assets
+  `index-DqlaffkU.js` and `index-FyrNS6Rw.css` matched the clean local build
+  byte-for-byte. The final handoff-only source commit is redeployed through the
+  same container pipeline so live identity matches repository HEAD.
+
+### Known gaps
+
+- The factory still must register the existing $18 Instructor kit in the
+  Sociobot billing engine; the useful free workspace remains unaffected.
+- No local Docker daemon is installed. The successful ACR source build and
+  Azure revision validate the Dockerfile, non-root runtime, and PORT-only
+  startup contract instead.
+
 ## Independent verification 3 — 2026-08-28
 
 **FAIL — candidate `e95429b64243ea808d7e8070d31da45619e50aad` at
