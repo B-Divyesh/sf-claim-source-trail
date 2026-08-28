@@ -1,8 +1,7 @@
 .git
 node_modules
 target
-dist
-assets/src
+test-results
+playwright-report
 data
-graphify-out
-*.md
+*.db
