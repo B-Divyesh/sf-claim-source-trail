@@ -1,5 +1,30 @@
 # Claim Source Trail — build handoff
 
+## Independent verification 3 — 2026-08-28
+
+**FAIL — candidate `e95429b64243ea808d7e8070d31da45619e50aad` at
+<https://claim-source-trail.sociobot.in> is deployed exactly but is not
+accepted.** Live `/health` reports the candidate SHA and its JS/CSS hashes
+match the clean production build. Clean install, audit, unit/integration tests,
+strict Rust formatting/lint, production build, 14/14 local E2E, 14/14 live E2E,
+axe, Lighthouse, PWA offline/update, privacy deletion, backend persistence and
+load checks otherwise passed.
+
+Release blockers found independently:
+
+- **P1 responsive boundary:** a valid 300-character unbroken source title
+  expands the live 390px document to 3,037px wide (3,169px at 1440px).
+- **P1 accessibility:** persistent mobile links render only 17–37px high,
+  below the required 44×44px touch target.
+
+Additional findings: corrupt trail JSON has no in-product clear/export
+recovery (**P2**); the `.factory/design.md` Ctrl/Cmd+Enter save shortcut is not
+implemented (**P2**); HSTS and Permissions-Policy are absent (**P3**).
+
+See [`.factory/verification-3.md`](verification-3.md) for exact commands,
+measurements, deployment identity, passing evidence, reproductions and required
+next steps. This verifier changed documentation only.
+
 ## Repair 2 — 2026-08-28
 
 **PASS — the release-blocking findings in independent verifier report commit
