@@ -42,6 +42,40 @@ test('home and editor have no serious accessibility violations', async ({ page }
   expect(results.violations.filter((item) => ['serious', 'critical'].includes(item.impact || ''))).toEqual([]);
 });
 
+test('saved counterevidence card has no serious accessibility violations', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add your first claim' }).click();
+  await page.getByLabel('Arguable claim Required').fill('A public archive can exclude community memory.');
+  await page.getByLabel('Source title Required').fill('Archive studies');
+  await page.getByLabel('Exact locator').fill('p. 42');
+  await page.getByLabel('Short excerpt or close paraphrase').fill('Archives also produce silences.');
+  await page.getByLabel('Why does this evidence support or complicate the claim?').fill('It complicates a claim that archives are neutral records.');
+  await page.getByLabel('Mark as counterevidence').check();
+  await page.getByRole('button', { name: 'Save trail' }).click();
+
+  await expect(page.locator('.stance.counter')).toContainText('Counterevidence');
+  const results = await new AxeBuilder({ page }).include('.trail-card').analyze();
+  expect(results.violations.filter((item) => ['serious', 'critical'].includes(item.impact || ''))).toEqual([]);
+});
+
+test('Delete all local data removes license credentials and every product-owned key', async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem('sb_license:claim-source-trail', 'reusable-license-token');
+    localStorage.setItem('sb_license:claim-source-trail:verdict', JSON.stringify({ valid: true, checkedAt: Date.now() }));
+    localStorage.setItem('claim-source-trail:page-counted', '2026-08-28');
+  });
+  await page.getByRole('button', { name: 'Add your first claim' }).click();
+  await page.getByLabel('Arguable claim Required').fill('Deletion must include credentials.');
+  await page.getByLabel('Source title Required').fill('Privacy policy');
+  await page.getByRole('button', { name: 'Save trail' }).click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Delete all local data' }).click();
+
+  await expect(page.getByText('All local data was deleted.')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => Object.keys(localStorage).filter((key) =>
+    key.startsWith('claim-source-trail:') || key.startsWith('sb_license:claim-source-trail')
+  ))).toEqual([]);
+});
+
 test('keyboard opens and dismisses the editor without losing focus', async ({ page }) => {
   const trigger = page.getByRole('button', { name: 'Build a claim trail' });
   await trigger.focus();

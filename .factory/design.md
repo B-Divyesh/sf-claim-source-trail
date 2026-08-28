@@ -16,12 +16,12 @@ This is deliberately a focused single light treatment. A paper-and-ink environme
 | Muted ink | `#5A584F` | explanatory text |
 | Signal yellow | `#FFD84D` | primary action and active focus |
 | Evidence blue | `#176B87` | links and source labels |
-| Counter coral | `#D94F36` | counterevidence state |
+| Counter coral | `#BD3D2A` | counterevidence state |
 | Verified green | `#287A4D` | complete trail state |
 | Warning wash | `#FFF1B8` | missing-step notices |
 | Danger | `#A52D21` | destructive actions/errors |
 
-Ink on paper is above 13:1; muted ink on paper is above 6:1; white on evidence blue is above 5:1. Color is always paired with a word, symbol, or border treatment.
+Ink on paper is above 13:1; muted ink on paper is above 6:1; white on evidence blue is above 5:1; white on counter coral is 5.44:1. Color is always paired with a word, symbol, or border treatment.
 
 ## Type and spacing
 

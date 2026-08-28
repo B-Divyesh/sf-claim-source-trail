@@ -1,7 +1,7 @@
 export const PRODUCT_SLUG = 'claim-source-trail';
 export const BILLING_BASE = 'https://api.sociobot.in/api/v1';
 export const LICENSE_KEY = `sb_license:${PRODUCT_SLUG}`;
-const VERDICT_KEY = `${LICENSE_KEY}:verdict`;
+export const LICENSE_VERDICT_KEY = `${LICENSE_KEY}:verdict`;
 const DAY = 86_400_000;
 
 interface Verdict {
@@ -24,7 +24,7 @@ export function captureLicenseFromUrl(): boolean {
   const token = url.searchParams.get('license');
   if (!token) return false;
   localStorage.setItem(LICENSE_KEY, token.trim());
-  localStorage.removeItem(VERDICT_KEY);
+  localStorage.removeItem(LICENSE_VERDICT_KEY);
   url.searchParams.delete('license');
   history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
   return true;
@@ -32,14 +32,14 @@ export function captureLicenseFromUrl(): boolean {
 
 export function restoreLicense(token: string): void {
   localStorage.setItem(LICENSE_KEY, token.trim());
-  localStorage.removeItem(VERDICT_KEY);
+  localStorage.removeItem(LICENSE_VERDICT_KEY);
 }
 
 export function cachedLicenseState(): LicenseState {
   const token = localStorage.getItem(LICENSE_KEY);
   if (!token) return { unlocked: false, notice: '' };
   try {
-    const verdict = JSON.parse(localStorage.getItem(VERDICT_KEY) || 'null') as Verdict | null;
+    const verdict = JSON.parse(localStorage.getItem(LICENSE_VERDICT_KEY) || 'null') as Verdict | null;
     if (verdict?.valid) return { unlocked: true, notice: '' };
     if (verdict && Date.now() - verdict.checkedAt < DAY) {
       return { unlocked: false, notice: 'License no longer active.' };
@@ -52,7 +52,7 @@ export async function verifyLicense(force = false): Promise<LicenseState> {
   const token = localStorage.getItem(LICENSE_KEY);
   if (!token) return { unlocked: false, notice: '' };
   try {
-    const cached = JSON.parse(localStorage.getItem(VERDICT_KEY) || 'null') as Verdict | null;
+    const cached = JSON.parse(localStorage.getItem(LICENSE_VERDICT_KEY) || 'null') as Verdict | null;
     if (!force && cached && Date.now() - cached.checkedAt < DAY) {
       return { unlocked: cached.valid, notice: cached.valid ? '' : 'License no longer active.' };
     }
@@ -65,8 +65,11 @@ export async function verifyLicense(force = false): Promise<LicenseState> {
     );
     if (!response.ok) throw new Error(`Verification returned ${response.status}`);
     const data = await response.json() as { valid: boolean; reason?: string };
+    // Deletion or a token replacement may have happened while this request was
+    // in flight. Never restore a credential verdict after either action.
+    if (localStorage.getItem(LICENSE_KEY) !== token) return { unlocked: false, notice: '' };
     const verdict: Verdict = { valid: data.valid, reason: data.reason, checkedAt: Date.now() };
-    localStorage.setItem(VERDICT_KEY, JSON.stringify(verdict));
+    localStorage.setItem(LICENSE_VERDICT_KEY, JSON.stringify(verdict));
     return { unlocked: data.valid, notice: data.valid ? 'Instructor kit unlocked.' : 'License no longer active.' };
   } catch {
     const optimistic = cachedLicenseState();

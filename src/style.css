@@ -1,5 +1,5 @@
-@font-face { font-family: "Atkinson Hyperlegible"; src: url("/fonts/atkinson-400.woff2") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; }
-@font-face { font-family: "Atkinson Hyperlegible"; src: url("/fonts/atkinson-700.woff2") format("woff2"); font-style: normal; font-weight: 700; font-display: swap; }
+@font-face { font-family: "Atkinson Hyperlegible"; src: url("/fonts/atkinson-400.woff2?v=1") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; }
+@font-face { font-family: "Atkinson Hyperlegible"; src: url("/fonts/atkinson-700.woff2?v=1") format("woff2"); font-style: normal; font-weight: 700; font-display: swap; }
 
 :root {
   color-scheme: light;
@@ -11,7 +11,7 @@
   --muted: #5a584f;
   --yellow: #ffd84d;
   --blue: #176b87;
-  --coral: #d94f36;
+  --coral: #bd3d2a;
   --green: #287a4d;
   --wash: #fff1b8;
   --danger: #a52d21;

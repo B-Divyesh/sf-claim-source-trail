@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cachedLicenseState, checkoutUrl, LICENSE_KEY, restoreLicense, verifyLicense } from './license';
+import { cachedLicenseState, checkoutUrl, LICENSE_KEY, LICENSE_VERDICT_KEY, restoreLicense, verifyLicense } from './license';
 
 beforeEach(() => {
   localStorage.clear();
@@ -24,5 +24,18 @@ describe('Instructor kit licensing', () => {
     await expect(verifyLicense(true)).resolves.toMatchObject({ unlocked: true });
     expect(fetchMock.mock.calls[0][0]).toContain('/claim-source-trail/verify?license=license-token');
     expect(cachedLicenseState().unlocked).toBe(true);
+  });
+
+  it('does not restore a cached license verdict after local data is cleared during verification', async () => {
+    restoreLicense('license-token');
+    let resolveFetch!: (response: Response) => void;
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((resolve) => { resolveFetch = resolve; })));
+    const verification = verifyLicense(true);
+    localStorage.removeItem(LICENSE_KEY);
+    localStorage.removeItem(LICENSE_VERDICT_KEY);
+    resolveFetch(new Response(JSON.stringify({ valid: true, reason: 'ok' }), { status: 200 }));
+
+    await expect(verification).resolves.toEqual({ unlocked: false, notice: '' });
+    expect(localStorage.getItem(LICENSE_VERDICT_KEY)).toBeNull();
   });
 });

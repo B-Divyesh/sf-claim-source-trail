@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyRetention, clearLocalData, loadSettings, loadTrails, saveSettings, saveTrails } from './storage';
+import { LICENSE_KEY, LICENSE_VERDICT_KEY } from './license';
 import type { Trail } from './model';
 
 const trail: Trail = {
@@ -15,6 +16,24 @@ describe('local persistence', () => {
     expect(loadTrails()[0].claim).toBe('Claim');
     expect(loadSettings()).toEqual({ courseLabel: 'SOC 101', retentionDays: 30 });
     clearLocalData(); expect(loadTrails()).toEqual([]);
+  });
+
+  it('deletes every product-owned key, including reusable license credentials', () => {
+    saveTrails([trail]);
+    saveSettings({ courseLabel: 'SOC 101', retentionDays: 30 });
+    localStorage.setItem(LICENSE_KEY, 'reusable-license-token');
+    localStorage.setItem(LICENSE_VERDICT_KEY, JSON.stringify({ valid: true, checkedAt: Date.now() }));
+    localStorage.setItem('claim-source-trail:page-counted', '2026-08-28');
+    localStorage.setItem('another-product:setting', 'leave this alone');
+
+    clearLocalData();
+
+    expect(localStorage.getItem(LICENSE_KEY)).toBeNull();
+    expect(localStorage.getItem(LICENSE_VERDICT_KEY)).toBeNull();
+    expect(localStorage.getItem('claim-source-trail:page-counted')).toBeNull();
+    expect(loadTrails()).toEqual([]);
+    expect(loadSettings()).toEqual({ courseLabel: '', retentionDays: 0 });
+    expect(localStorage.getItem('another-product:setting')).toBe('leave this alone');
   });
 
   it('applies an explicit last-edited retention window', () => {

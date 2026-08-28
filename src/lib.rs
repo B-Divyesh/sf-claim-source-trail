@@ -61,9 +61,10 @@ async fn page_view(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 async fn cache_policy(request: Request<Body>, next: Next) -> Response {
-    let is_asset = request.uri().path().starts_with("/assets/");
+    let path = request.uri().path();
+    let is_versioned_static = path.starts_with("/assets/") || path.starts_with("/fonts/");
     let mut response = next.run(request).await;
-    let value = if is_asset {
+    let value = if is_versioned_static {
         HeaderValue::from_static("public, max-age=31536000, immutable")
     } else {
         HeaderValue::from_static("no-cache")
@@ -214,5 +215,32 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn static_fonts_are_immutable_cached() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        migrate(&pool).await.unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::create_dir(directory.path().join("fonts")).unwrap();
+        std::fs::write(directory.path().join("fonts/atkinson-400.woff2"), "font").unwrap();
+        let response = app(pool, directory.path().to_path_buf())
+            .oneshot(
+                Request::builder()
+                    .uri("/fonts/atkinson-400.woff2?v=1")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers()[header::CACHE_CONTROL],
+            "public, max-age=31536000, immutable"
+        );
     }
 }

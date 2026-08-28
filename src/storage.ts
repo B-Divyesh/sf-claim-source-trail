@@ -2,6 +2,7 @@ import type { Trail } from './model';
 
 const TRAILS_KEY = 'claim-source-trail:trails:v1';
 const SETTINGS_KEY = 'claim-source-trail:settings:v1';
+const PRODUCT_STORAGE_PREFIXES = ['claim-source-trail:', 'sb_license:claim-source-trail'];
 
 export interface Settings {
   courseLabel: string;
@@ -37,8 +38,13 @@ export function saveSettings(settings: Settings): void {
 }
 
 export function clearLocalData(): void {
-  localStorage.removeItem(TRAILS_KEY);
-  localStorage.removeItem(SETTINGS_KEY);
+  // This is the complete-deletion control promised in the privacy policy. Keep
+  // the namespace list here so future product-owned keys are cleared too.
+  const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
+    .filter((key): key is string => key !== null);
+  keys
+    .filter((key) => PRODUCT_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix)))
+    .forEach((key) => localStorage.removeItem(key));
 }
 
 export function applyRetention(trails: Trail[], days: number, now = Date.now()): Trail[] {

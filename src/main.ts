@@ -249,8 +249,8 @@ function bindGlobalEvents(): void {
   }));
   document.querySelectorAll<HTMLButtonElement>('.delete-trail').forEach((button) => button.addEventListener('click', () => openDelete(button.dataset.id!)));
   document.querySelector('.delete-all')?.addEventListener('click', () => {
-    if (confirm(`Delete all ${trails.length} local claim trails and settings? This cannot be undone.`)) {
-      clearLocalData(); trails = []; settings = loadSettings(); render(); announce('All local claim data was deleted.');
+    if (confirm(`Delete all ${trails.length} local claim trails, settings, and this device's Instructor kit license? This cannot be undone.`)) {
+      clearLocalData(); trails = []; settings = loadSettings(); license = { unlocked: false, notice: '' }; render(); announce('All local data was deleted.');
     }
   });
   document.querySelectorAll<HTMLButtonElement>('.close-dialog').forEach((button) => button.addEventListener('click', closeEditor));
