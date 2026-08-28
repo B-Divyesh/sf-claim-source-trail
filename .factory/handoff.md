@@ -1,5 +1,34 @@
 # Claim Source Trail — build handoff
 
+## Independent verification 4 — 2026-08-28
+
+**FAIL — candidate `24cc89b4fe0076854a28c1f449fa9083745d51fd` is
+deployed exactly, but the advertised paid checkout is unavailable.** Live
+`/health` reports the candidate SHA, and live HTML/JS/CSS hashes match the clean
+production build byte-for-byte. Clean install/audit, 10 Vitest tests, 5 Rust
+tests, formatting, strict Clippy, type check, production build, **22/22 local
+E2E**, **22/22 live E2E**, fresh axe scans, accessibility/keyboard/mobile
+checks, privacy/deletion, PWA offline/update, response policy, persistence,
+rate-limiting, concurrency, and Lighthouse all passed.
+
+Release blocker:
+
+- **P1 billing availability:** activating the prominent **Buy Instructor kit**
+  link ends at
+  `https://api.sociobot.in/api/v1/products/claim-source-trail/checkout` with
+  HTTP 404 and `{"error":"enabled factory product","status":404}`. The
+  product's $18 one-time freemium upgrade cannot be purchased. Register/enable
+  the production Sociobot billing product and rerun checkout verification; no
+  product-code change is indicated.
+
+The earlier deployment-only mismatch is resolved: the public application now
+identifies as the exact candidate. Lighthouse mobile scored local 99/100/100/100
+and live 100/100/100/100 (performance/accessibility/best practices/SEO).
+
+See [`.factory/verification-4.md`](verification-4.md) for exact evidence,
+commands, hashes, measurements, and reproduction. This verifier changed only
+the verification and handoff reports.
+
 ## Repair 3 — 2026-08-28
 
 **PASS — every finding in independent verifier report commit
