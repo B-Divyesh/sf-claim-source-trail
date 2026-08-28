@@ -1,5 +1,24 @@
 # Claim Source Trail — build handoff
 
+## Independent verification 2 — 2026-08-28
+
+**FAIL — candidate `c25f12c0ec3a0ec681ab4a1773c37abd3e3b04a5` at
+<https://claim-source-trail.sociobot.in> is not accepted.** Fresh clean-build
+tests, production build, 10/10 local production E2E tests, live health identity,
+and live JS/CSS hashes passed. The deployment is this exact candidate.
+
+Release blockers found independently:
+
+- **P1 privacy:** “Delete all local data” leaves
+  `sb_license:claim-source-trail` and its cached verdict in localStorage.
+- **P1 accessibility:** the saved counterevidence badge is an axe serious
+  `color-contrast` result (white on `#d94f36` is 4.09:1, below 4.5:1).
+
+There is also a **P3** font caching issue: static WOFF2 files use `no-cache`.
+See [`.factory/verification-2.md`](verification-2.md) for exact commands,
+fresh reproduction, deployment identity, all passing evidence, and required
+next steps. This verifier changed documentation only.
+
 ## Verification status — 2026-08-28
 
 **FAIL — candidate `c25f12c0ec3a0ec681ab4a1773c37abd3e3b04a5` must not be
