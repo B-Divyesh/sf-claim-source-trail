@@ -22,7 +22,7 @@ let previousFocus: HTMLElement | null = null;
 try {
   trails = loadTrails();
 } catch {
-  storageError = 'Your saved trails could not be read. Export or clear this browser’s site data, then start again.';
+  storageError = 'Your saved trails could not be read. Delete the unreadable local data below, then start again.';
 }
 
 const capturedLicense = captureLicenseFromUrl();
@@ -217,11 +217,11 @@ function homePage(): string {
     </ol></section>
     <section id="workspace" class="workspace" aria-labelledby="workspace-title">
       <div class="section-head"><div><p class="eyebrow">Private workspace</p><h2 id="workspace-title">Your claim trails</h2><p id="trail-summary">${trails.length ? `${trails.length} ${trails.length === 1 ? 'trail' : 'trails'} · ${readyRate(trails)}% ready to spot-check` : 'Nothing is stored until you save a trail.'}</p></div><button class="button primary add-trail" type="button">+ Add claim</button></div>
-      ${storageError ? `<div class="error-banner" role="alert"><strong>Local data error.</strong> ${esc(storageError)}</div>` : ''}
+      ${storageError ? `<div class="error-banner" role="alert"><strong>Local data error.</strong> ${esc(storageError)}<button class="text-button delete-all" type="button">Delete all local data</button></div>` : ''}
       <div class="toolbar" ${trails.length ? '' : 'hidden'}><label for="search-trails">Search trails<input id="search-trails" type="search" placeholder="Search claims or sources"></label><label for="filter-trails">Show<select id="filter-trails"><option value="all">All trails</option><option value="ready">Ready to spot-check</option><option value="needs-locator">Missing locator</option><option value="counter">Counterevidence</option></select></label><div class="export-group"><button class="button export-md" type="button">Export Markdown</button><button class="button export-csv" type="button">Export CSV</button></div></div>
       <div id="filter-note" class="filter-note" role="status"></div>
       <div id="trail-list" class="trail-list">${trails.length ? trails.map(trailCard).join('') : emptyState()}</div>
-      ${trails.length ? '<button class="text-button delete-all" type="button">Delete all local data</button>' : ''}
+      ${trails.length && !storageError ? '<button class="text-button delete-all" type="button">Delete all local data</button>' : ''}
     </section>
     ${paidPanel()}
   </main>${editorDialog()}${deleteDialog()}<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>`, 'home');
@@ -249,14 +249,22 @@ function bindGlobalEvents(): void {
   }));
   document.querySelectorAll<HTMLButtonElement>('.delete-trail').forEach((button) => button.addEventListener('click', () => openDelete(button.dataset.id!)));
   document.querySelector('.delete-all')?.addEventListener('click', () => {
-    if (confirm(`Delete all ${trails.length} local claim trails, settings, and this device's Instructor kit license? This cannot be undone.`)) {
-      clearLocalData(); trails = []; settings = loadSettings(); license = { unlocked: false, notice: '' }; render(); announce('All local data was deleted.');
+    const subject = storageError ? 'the unreadable local data' : `all ${trails.length} local claim trails, settings, and this device's Instructor kit license`;
+    if (confirm(`Delete ${subject}? This cannot be undone.`)) {
+      clearLocalData(); trails = []; settings = loadSettings(); license = { unlocked: false, notice: '' }; storageError = ''; render(); announce('All local data was deleted.');
     }
   });
   document.querySelectorAll<HTMLButtonElement>('.close-dialog').forEach((button) => button.addEventListener('click', closeEditor));
   document.querySelector('.cancel-delete')?.addEventListener('click', () => (document.querySelector<HTMLDialogElement>('#delete-dialog')?.close()));
   document.querySelector('.confirm-delete')?.addEventListener('click', confirmDelete);
-  document.querySelector<HTMLFormElement>('#trail-form')?.addEventListener('submit', saveEditor);
+  const trailForm = document.querySelector<HTMLFormElement>('#trail-form');
+  trailForm?.addEventListener('submit', saveEditor);
+  trailForm?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      trailForm.requestSubmit();
+    }
+  });
   document.querySelector('.export-md')?.addEventListener('click', () => download('claim-source-trails.md', toMarkdown(trails, settings.courseLabel), 'text/markdown'));
   document.querySelector('.export-csv')?.addEventListener('click', () => download('claim-source-trails.csv', toCsv(trails), 'text/csv'));
   document.querySelector<HTMLInputElement>('#search-trails')?.addEventListener('input', filterTrails);

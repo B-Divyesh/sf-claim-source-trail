@@ -1,7 +1,7 @@
 use axum::{
     body::Body,
     extract::State,
-    http::{header, HeaderValue, Request, StatusCode},
+    http::{header, HeaderName, HeaderValue, Request, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -103,6 +103,16 @@ pub fn app(pool: SqlitePool, dist_dir: PathBuf) -> Router {
             HeaderValue::from_static("strict-origin-when-cross-origin"),
         ))
         .layer(SetResponseHeaderLayer::if_not_present(
+            header::STRICT_TRANSPORT_SECURITY,
+            HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("permissions-policy"),
+            HeaderValue::from_static(
+                "camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+            ),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
             header::CONTENT_SECURITY_POLICY,
             HeaderValue::from_static("default-src 'self'; connect-src 'self' https://api.sociobot.in; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://api.sociobot.in"),
         ))
@@ -143,6 +153,14 @@ mod tests {
         assert_eq!(
             response.headers()[header::X_CONTENT_TYPE_OPTIONS],
             "nosniff"
+        );
+        assert_eq!(
+            response.headers()[header::STRICT_TRANSPORT_SECURITY],
+            "max-age=31536000; includeSubDomains"
+        );
+        assert_eq!(
+            response.headers()["permissions-policy"],
+            "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
         );
     }
 
