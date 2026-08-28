@@ -1,5 +1,21 @@
 # Claim Source Trail — build handoff
 
+## Verification status — 2026-08-28
+
+**FAIL — candidate `c25f12c0ec3a0ec681ab4a1773c37abd3e3b04a5` must not be
+accepted.** Independent verification against
+<https://claim-source-trail.sociobot.in> confirmed the live health build SHA
+and exact JS/CSS hashes match this candidate, and its clean tests/build/browser
+suite otherwise passed. However, the product's **Delete all local data** action
+leaves `sb_license:claim-source-trail` and its cached verdict in localStorage.
+This violates the privacy-first brief's clear-deletion requirement and leaves a
+reusable credential after the user asked to delete all local data.
+
+See [`.factory/verification.md`](verification.md) for the reproduction,
+complete command results, passing evidence, and the non-blocking font caching
+finding. The required next step is a targeted complete-deletion fix and a new
+candidate verification; no product code was changed by this verifier.
+
 Date: 2026-08-27
 
 Work order: `claim-source-trail-build-1`
