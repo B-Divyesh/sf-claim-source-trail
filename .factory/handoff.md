@@ -1,5 +1,34 @@
 # Claim Source Trail — build handoff
 
+## Independent verification 5 — 2026-08-30
+
+**FAIL — candidate `0f49eb8281d778edc229af22a131b5522dc0bca9` is deployed
+exactly but must not be accepted.** See
+[`.factory/verification-5.md`](verification-5.md) for the complete evidence.
+
+Release blockers found from fresh independent QA:
+
+- **P1 claim gate:** all five exact commands in `.factory/claims.json` fail
+  from the clean checkout because Playwright targets `127.0.0.1:8080` but does
+  not start a web server. The same ten browser variants pass only after the
+  verifier manually starts the release server, which does not meet the required
+  clean-command contract.
+- **P1 first read:** the live first screen explains the evidence-trail task and
+  includes a working one-click “Try it with sample data” action, but never names
+  the intended undergraduate humanities/social-science student audience.
+- **P1 backend fairness:** live page-view rate limiting permits a global burst
+  of 40 then returns 429 with `Retry-After: 0`; a different
+  `X-Forwarded-For` client is also denied after the first client's burst. The
+  implementation uses `GlobalKeyExtractor`, not the mandatory forwarded client
+  IP key.
+
+The healthy parts are verified: live `/health` reports this exact candidate;
+live JS/CSS match the clean build byte-for-byte; `npm test`, `npm run build`,
+formatting, strict Clippy, billing check, local claim behavior (when explicitly
+served), and full **30/30** live Playwright suite passed. Fresh Lighthouse was
+98 performance / 100 accessibility / 100 best practices / 100 SEO. No product
+code was changed by this verifier.
+
 ## Repair 4 — 2026-08-30
 
 **REPAIRED and deployed.** This repairs every finding in independent verifier
