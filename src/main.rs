@@ -26,9 +26,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let supplied_database_url = env::var("DATABASE_URL").ok();
     let database_url = supplied_database_url.clone().unwrap_or_else(|| {
         if Path::new("/data").is_dir() {
-            "sqlite:///data/claim-source-trail.db".into()
+            "sqlite:///data/claim-source-trail-v2.db".into()
         } else {
-            "sqlite://data/claim-source-trail.db".into()
+            "sqlite://data/claim-source-trail-v2.db".into()
         }
     });
     if let Some(path) = database_url
