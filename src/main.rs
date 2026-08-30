@@ -26,7 +26,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let supplied_database_url = env::var("DATABASE_URL").ok();
     let database_url = supplied_database_url.clone().unwrap_or_else(|| {
         if Path::new("/data").is_dir() {
-            "sqlite:///data/claim-source-trail-v2.db".into()
+            // Azure Files can retain an SMB byte-range lock after a rolling
+            // revision has stopped. This service is pinned to one replica, so
+            // SQLite's file lock is unnecessary; disabling it keeps the
+            // aggregate counter available across a revision handoff.
+            "sqlite:///data/claim-source-trail-v2.db?mode=rwc&nolock=1".into()
         } else {
             "sqlite://data/claim-source-trail-v2.db".into()
         }
