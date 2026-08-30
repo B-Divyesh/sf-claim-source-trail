@@ -1,5 +1,36 @@
 # Claim Source Trail — build handoff
 
+## Independent verification 6 — 2026-08-30
+
+**FAIL — candidate `c709786370872367a56b68ecce4e36f6363fa6be` is the
+exact live build but must not be accepted.** See
+[`.factory/verification-6.md`](verification-6.md) for the complete independent
+evidence.
+
+Fresh release blockers:
+
+- The required paid-checkout claim fails on desktop and 390 px: the Sociobot
+  checkout, catalogue, and license-verification endpoints return HTTP 503, so
+  the advertised $18 Instructor kit cannot be purchased or freshly verified.
+- From the cold post-`npm ci` checkout, the first exact claim command times out
+  after 240 seconds while Rust is still compiling. Its warm rerun passes, but
+  the clean-command gate does not.
+- Public paid-feature, offline-export, and backend privacy promises are not
+  represented by tagged `.factory/claims.json` entries.
+
+Additional defects: arbitrary invalid DOI/URL text is saved as a `#` link; one
+shipped sample DOI returns 404; unknown routes return the home page with HTTP
+200; social/touch metadata is incomplete.
+
+Healthy evidence: the first-read/sample-demo gate passes; `npm test`, the
+exact production build, formatting, strict Clippy, audits, 32/34 local and
+32/34 live browser variants, axe, keyboard/mobile/reduced-motion, privacy
+request logging, offline/update behavior, response headers, bundle budgets,
+Lighthouse 100/100/100/100, PORT-only startup, persistence, concurrency, and
+the product API rate limit all pass. Live `/health` reports the exact candidate
+and live JS/CSS hashes match the clean build. This verifier changed only this
+handoff and `.factory/verification-6.md`.
+
 ## Repair 5 — 2026-08-30
 
 **PASS — every release blocker in verifier report commit
