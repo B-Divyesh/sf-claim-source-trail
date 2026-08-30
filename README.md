@@ -1,8 +1,10 @@
 # Claim Source Trail
 
-Claim Source Trail is a privacy-first evidence-reasoning workspace for undergraduate humanities and social-science students. Each compact trail connects an arguable claim to a named source, an exact page/section locator, a short excerpt or paraphrase, and the student’s own explanation of why the evidence matters.
+Claim Source Trail is a private workspace for humanities and social-science students.
 
-It is intentionally not a fact checker, essay generator, or reference manager. It helps a reader inspect the small reasoning chain that conventional citation tools often leave implicit.
+Record a claim, the source, its exact location, and why the source supports it. See all four parts together before you write.
+
+It is not a fact checker, essay generator, or reference manager. It helps readers inspect the evidence reasoning behind a claim.
 
 Live product: <https://claim-source-trail.sociobot.in>
 
@@ -33,7 +35,7 @@ Vite proxies `/api` and `/health` to the Axum process. For a production-style lo
 
 ```bash
 npm run build
-PORT=8080 DATABASE_URL=sqlite://data/claim-source-trail.db DIST_DIR=dist cargo run --release
+PORT=8080 cargo run --release
 ```
 
 Configuration is environment-only:
@@ -41,7 +43,7 @@ Configuration is environment-only:
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `8080` | HTTP listener port |
-| `DATABASE_URL` | `sqlite://data/claim-source-trail.db` | Aggregate page-count database |
+| `DATABASE_URL` | `/data/claim-source-trail.db` when `/data` exists, otherwise `data/claim-source-trail.db` | Aggregate page-count database |
 | `DIST_DIR` | `dist` | Built frontend directory |
 | `RUST_LOG` | `info,tower_http=info` | Structured JSON log filter |
 | `BUILD_SHA` | `development` | Value returned by `/health` when set at compile time |
@@ -68,7 +70,7 @@ The page-count route is rate-limited per first `X-Forwarded-For` client IP. Set 
 
 ```bash
 docker build --build-arg BUILD_SHA=$(git rev-parse --short HEAD) -t claim-source-trail .
-docker run --rm -p 8080:8080 -v claim-source-data:/app/data claim-source-trail
+docker run --rm -p 8080:8080 -v claim-source-data:/data claim-source-trail
 ```
 
 The multi-stage image runs as an unprivileged user and serves both the Axum API and `dist/` on port 8080. Deployment infrastructure and DNS are managed outside this repository. The registered production Instructor kit is checked without submitting a payment by `npm run test:billing`.

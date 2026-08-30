@@ -1,5 +1,7 @@
 FROM node:22-alpine AS frontend
 WORKDIR /app
+ARG BUILD_SHA=dev
+ENV VITE_BUILD_SHA=$BUILD_SHA
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY index.html tsconfig.json vite.config.ts ./
@@ -13,7 +15,7 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock* ./
 COPY src ./src
 COPY migrations ./migrations
-ARG BUILD_SHA=unknown
+ARG BUILD_SHA=dev
 ENV BUILD_SHA=$BUILD_SHA
 RUN cargo build --release
 
@@ -22,8 +24,7 @@ RUN apk add --no-cache ca-certificates && addgroup -S app && adduser -S -G app a
 WORKDIR /app
 COPY --from=backend /app/target/release/claim-source-trail /usr/local/bin/claim-source-trail
 COPY --from=frontend /app/dist ./dist
-RUN mkdir -p /app/data && chown -R app:app /app/data
+RUN mkdir -p /data && chown -R app:app /data
 USER app
-ENV PORT=8080 DATABASE_URL=sqlite:///app/data/claim-source-trail.db DIST_DIR=/app/dist RUST_LOG=info
 EXPOSE 8080
 ENTRYPOINT ["claim-source-trail"]

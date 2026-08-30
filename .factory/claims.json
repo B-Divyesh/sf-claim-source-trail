@@ -9,9 +9,23 @@
   {
     "id": "demo-isolated",
     "claim": "Demo sample data is separate from your real workspace and can be discarded.",
-    "where": "demo banner, README",
+    "where": "demo banner, landing action note, README",
     "test": "npm run test:e2e -- --grep @claim:demo-isolated",
     "sandbox": "seed a real trail, open /?demo=1, assert only demo records render, then Start for real and assert demo storage is gone"
+  },
+  {
+    "id": "demo-sample-count",
+    "claim": "The demo opens exactly two sample trails and leaves the real workspace unchanged.",
+    "where": "landing action note, demo banner",
+    "test": "npm run test:e2e -- --grep @claim:demo-sample-count",
+    "sandbox": "fresh browser context; open /?demo=1#workspace, assert two visible sample cards and no real workspace trail key"
+  },
+  {
+    "id": "saved-trails-only",
+    "claim": "No claim trail is stored until you save it.",
+    "where": "empty workspace summary",
+    "test": "npm run test:e2e -- --grep @claim:saved-trails-only",
+    "sandbox": "fresh real workspace; assert no trail key before save, save one trail, then assert its text exists in the trail key"
   },
   {
     "id": "local-content",
@@ -54,6 +68,27 @@
     "where": "Instructor kit panel, terms, README",
     "test": "npm run test:e2e -- --grep @claim:paid-checkout",
     "sandbox": "open the home page and assert the advertised checkout endpoint responds with a 303 redirect to checkout.dodopayments.com without following it"
+  },
+  {
+    "id": "refund-policy",
+    "claim": "The purchase terms name Sociobot/Dodo as merchant of record and say a refund revokes the license.",
+    "where": "Instructor kit panel, terms, README",
+    "test": "npm run test:e2e -- --grep @claim:refund-policy",
+    "sandbox": "open /terms in a fresh browser context and assert the merchant and refund terms are visible"
+  },
+  {
+    "id": "hero-art-provenance",
+    "claim": "The site identifies its original generated hero art and links to its details.",
+    "where": "site footer, terms",
+    "test": "npm run test:e2e -- --grep @claim:hero-art-provenance",
+    "sandbox": "fresh browser context; assert the footer disclosure, shipped hero asset, and Artwork terms section"
+  },
+  {
+    "id": "no-ai-routing",
+    "claim": "No student work is sent to an AI model.",
+    "where": "privacy promise removed from landing; verified product behavior",
+    "test": "npm run test:e2e -- --grep @claim:no-ai-routing",
+    "sandbox": "record every request while editing and saving a demo trail; assert only same-origin requests and no AI endpoint"
   },
   {
     "id": "instructor-tools",

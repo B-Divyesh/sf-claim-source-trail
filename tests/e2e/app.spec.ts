@@ -70,7 +70,7 @@ test('trails can be revised, searched, filtered, and reversibly deleted @claim:t
 test('sample trails export to useful Markdown and CSV @claim:free-exports', async ({ page }) => {
   await page.goto('/?demo=1#workspace');
   await expect(page).toHaveTitle('Demo — Claim Source Trail');
-  await expect(page.getByText('Demo — sample data, nothing is saved.')).toBeVisible();
+  await expect(page.getByText('Demo — sample data. Your real workspace stays unchanged.')).toBeVisible();
   await expect(page.locator('.trail-card')).toHaveCount(2);
 
   const markdownDownload = page.waitForEvent('download');
@@ -221,13 +221,12 @@ test('invalid source references are announced and never become dead links', asyn
   await expect(page.locator('a[href="#"]')).toHaveCount(0);
 });
 
-test('the shipped counterevidence sample points to a reachable source', async ({ page, request }) => {
+test('the shipped counterevidence sample has a valid, documented source URL without reaching an external publisher', async ({ page }) => {
   await page.goto('/?demo=1#workspace');
   const source = page.locator('.trail-card').filter({ hasText: 'Silencing the Past' }).locator('.trail-steps a');
   const href = await source.getAttribute('href');
   expect(href).toBe('https://www.beacon.org/Silencing-the-Past-P1851.aspx');
-  const response = await request.get(href!);
-  expect(response.status()).toBeLessThan(400);
+  expect(new URL(href!).protocol).toBe('https:');
 });
 
 test('persistent navigation and legal links have 44px touch targets', async ({ page }) => {
@@ -265,7 +264,7 @@ test('cached demo workspace opens offline @claim:offline-reload', async ({ brows
     await offlinePage.reload();
     await offlineContext.setOffline(true);
     await offlinePage.reload();
-    await expect(offlinePage.getByRole('heading', { level: 1, name: 'Make every claim traceable.' })).toBeVisible();
+    await expect(offlinePage.getByRole('heading', { level: 1, name: 'Connect each claim to its source.' })).toBeVisible();
     await expect(offlinePage.getByText('Public memorials shape which histories a community treats as shared.')).toBeVisible();
     await offlinePage.evaluate(() => window.dispatchEvent(new Event('offline')));
     await expect(offlinePage.getByText('Offline — your local workspace and exports still work.')).toBeVisible();
@@ -396,10 +395,68 @@ test('legal routes are real, readable pages', async ({ page }) => {
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('sizes', '180x180');
 });
 
-test('unknown routes return the designed 404 document', async ({ page }) => {
+test('route changes move focus to the new page heading and announce the destination', async ({ page }) => {
+  await page.getByRole('link', { name: 'Privacy' }).first().click();
+  await expect(page).toHaveURL(/\/privacy$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Privacy, by design' })).toBeFocused();
+  await expect(page.locator('#route-announcer')).toHaveText('Privacy page loaded.');
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Connect each claim to its source.' })).toBeFocused();
+  await expect(page.locator('#route-announcer')).toHaveText('Claim Source Trail — connect claims to evidence page loaded.');
+});
+
+test('sample entry shows exactly two trails and keeps the real workspace unchanged @claim:demo-sample-count', async ({ page }) => {
+  await page.goto('/?demo=1#workspace');
+  await expect(page.locator('.trail-card')).toHaveCount(2);
+  await expect(page.locator('.demo-banner')).toContainText('Your real workspace stays unchanged.');
+  expect(await page.evaluate(() => localStorage.getItem('claim-source-trail:trails:v1'))).toBeNull();
+});
+
+test('the empty workspace qualifies what is and is not stored @claim:saved-trails-only', async ({ page }) => {
+  await expect(page.getByText('No claim trail is stored until you save it.')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('claim-source-trail:trails:v1'))).toBeNull();
+  await page.getByRole('button', { name: 'Add your first claim' }).click();
+  await page.getByLabel('Arguable claim Required').fill('Saving creates a claim trail.');
+  await page.getByLabel('Source title Required').fill('Storage regression study');
+  await page.getByRole('button', { name: 'Save trail' }).click();
+  expect(await page.evaluate(() => localStorage.getItem('claim-source-trail:trails:v1'))).toContain('Saving creates a claim trail.');
+});
+
+test('the footer discloses the product-specific generated hero art @claim:hero-art-provenance', async ({ page }) => {
+  await expect(page.locator('footer')).toContainText('Original generated hero art.');
+  await expect(page.locator('.hero-art img')).toHaveAttribute('src', '/assets/hero-trail.webp');
+  await page.getByRole('link', { name: 'Art details' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Artwork' })).toBeVisible();
+});
+
+test('purchase terms name the merchant of record and refund effect @claim:refund-policy', async ({ page }) => {
+  await page.goto('/terms');
+  await expect(page.getByText('Sociobot/Dodo is the merchant of record and handles checkout and refunds.')).toBeVisible();
+  await expect(page.getByText('A refund revokes the license.')).toBeVisible();
+});
+
+test('a complete demo flow sends no student work to an AI endpoint @claim:no-ai-routing', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (request) => requests.push(request.url()));
+  await page.goto('/?demo=1#workspace');
+  await page.getByRole('button', { name: 'Edit trail' }).first().click();
+  await page.getByLabel('Arguable claim Required').fill('A student writes the reasoning without an AI endpoint.');
+  await page.getByRole('button', { name: 'Save trail' }).click();
+  expect(requests.every((url) => new URL(url).origin === new URL(page.url()).origin)).toBe(true);
+  expect(requests.some((url) => /openai|azure|\/v1\/responses/i.test(url))).toBe(false);
+});
+
+test('unknown routes return the designed 404 document with complete metadata', async ({ page }) => {
   const response = await page.goto('/definitely-not-a-route');
   expect(response?.status()).toBe(404);
   await expect(page).toHaveTitle('Page not found — Claim Source Trail');
-  await expect(page.getByRole('heading', { level: 1, name: 'That trail ends here.' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /requested Claim Source Trail page/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://claim-source-trail.sociobot.in/404');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /social-preview\.webp$/);
+  await expect(page.locator('header nav a')).toHaveCount(4);
+  await expect(page.locator('footer')).toContainText('Built by Param Factory');
+  await expect(page.locator('footer')).toContainText('Version 1.0.0');
   await expect(page.getByRole('link', { name: 'Return to workspace' })).toHaveAttribute('href', '/');
 });

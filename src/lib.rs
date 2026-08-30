@@ -306,7 +306,7 @@ mod tests {
         .unwrap();
         std::fs::write(
             directory.path().join("404.html"),
-            "<!doctype html><title>Not found</title><h1>That trail ends here.</h1>",
+            "<!doctype html><title>Not found</title><h1>Page not found</h1>",
         )
         .unwrap();
         let router = app(pool, directory.path().to_path_buf());

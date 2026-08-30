@@ -12,6 +12,8 @@ import {
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const demoMode = new URLSearchParams(location.search).get('demo') === '1';
 const storageScope: StorageScope = demoMode ? 'demo' : 'real';
+const PRODUCT_VERSION = '1.0.0';
+const BUILD_ID = import.meta.env.VITE_BUILD_SHA || 'dev';
 let trails: Trail[] = [];
 let settings: Settings = loadSettings(storageScope);
 let license: LicenseState = demoMode ? { unlocked: false, notice: '' } : cachedLicenseState();
@@ -42,6 +44,8 @@ function esc(value: string): string {
 }
 
 function shell(content: string, page: 'home' | 'privacy' | 'terms'): string {
+  const workspaceHref = page === 'home' ? '#workspace' : '/#workspace';
+  const instructorHref = page === 'home' ? '#instructor' : '/#instructor';
   return `
     <header class="site-header">
       <a class="wordmark" href="/" aria-label="Claim Source Trail home">
@@ -49,7 +53,9 @@ function shell(content: string, page: 'home' | 'privacy' | 'terms'): string {
         Claim Source Trail
       </a>
       <nav aria-label="Primary navigation">
-        ${page === 'home' ? '<a href="/?demo=1#workspace">Demo</a><a href="#workspace">Workspace</a><a href="#instructor">Instructor kit</a>' : '<a href="/">Workspace</a><a href="/?demo=1#workspace">Demo</a>'}
+        <a href="${workspaceHref}">Workspace</a>
+        <a href="/?demo=1#workspace">Demo</a>
+        <a href="${instructorHref}">Instructor kit</a>
         <a href="/privacy" ${page === 'privacy' ? 'aria-current="page"' : ''}>Privacy</a>
       </nav>
     </header>
@@ -57,7 +63,7 @@ function shell(content: string, page: 'home' | 'privacy' | 'terms'): string {
     <footer>
       <div><strong>Claim Source Trail</strong><br><span>Reasoning practice, not truth verification.</span></div>
       <nav aria-label="Footer navigation"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>
-      <p>Hero art generated for this product with Azure OpenAI. No student work is sent to an AI model.</p>
+      <p>Built by Param Factory · Version ${PRODUCT_VERSION} · Build ${esc(BUILD_ID)}<br>Original generated hero art. <a href="/terms">Art details</a></p>
     </footer>`;
 }
 
@@ -127,6 +133,8 @@ function legalPage(kind: 'privacy' | 'terms'): string {
     <p>You are responsible for checking sources, respecting copyright and access terms, protecting exported files, and following your institution’s academic-integrity policies.</p>
     <h2>Availability</h2>
     <p>The service is provided “as is” without a promise of uninterrupted availability. Export important work regularly. These terms are governed by applicable law.</p>
+    <h2>Artwork</h2>
+    <p>The footer identifies the original generated hero art. Its prompt and creation record are in the product design notes.</p>
   `;
   return shell(`<main id="main" class="legal-page">${content}<p><a class="text-link" href="/">← Return to workspace</a></p></main>`, kind);
 }
@@ -199,7 +207,7 @@ function sampleTrails(): Trail[] {
 
 function demoBanner(): string {
   if (!demoMode) return '';
-  return `<aside class="demo-banner" aria-label="Demo mode"><div><strong>Demo — sample data, nothing is saved.</strong><span>Two research trails are ready to inspect and export.</span></div><div class="demo-actions"><button class="text-button reset-demo" type="button">Reset demo</button><a class="text-button start-real" href="/">Start for real</a></div></aside>`;
+  return `<aside class="demo-banner" aria-label="Demo mode"><div><strong>Demo — sample data. Your real workspace stays unchanged.</strong><span>Two research trails are ready to inspect and export.</span></div><div class="demo-actions"><button class="text-button reset-demo" type="button">Reset demo</button><a class="text-button start-real" href="/">Start for real</a></div></aside>`;
 }
 
 function paidPanel(): string {
@@ -271,25 +279,25 @@ function editorDialog(): string {
 function deleteDialog(): string {
   return `<dialog id="delete-dialog" aria-labelledby="delete-title"><div class="confirm-box">
     <p class="eyebrow">Delete local trail</p><h2 id="delete-title">Delete this claim?</h2><p id="delete-claim"></p>
-    <div class="dialog-actions"><button class="text-button cancel-delete" type="button">Keep it</button><button class="button danger confirm-delete" type="button">Delete trail</button></div>
+    <div class="dialog-actions"><button class="text-button cancel-delete" type="button">Cancel deletion</button><button class="button danger confirm-delete" type="button">Delete trail</button></div>
   </div></dialog>`;
 }
 
 function homePage(): string {
   return shell(`${demoBanner()}<main id="main">
     <section class="hero">
-      <div class="hero-copy"><p class="kicker">Claim → source → location → reasoning</p><h1>Make every claim traceable.</h1>
-      <p class="lead">Undergraduate humanities and social-science students build evidence trails that readers and instructors can check. Your work stays in this browser.</p>
+      <div class="hero-copy"><p class="kicker">Claim → source → location → reasoning</p><h1>Connect each claim to its source.</h1>
+      <p class="lead">Undergraduate humanities and social-science students show where evidence supports each claim.</p>
       <div class="button-row"><a class="button primary" href="/?demo=1#workspace">Try it with sample data</a><button class="button add-trail" type="button">Build a claim trail</button><a class="button ghost" href="#how-it-works">See the four steps</a></div>
-      <p class="action-note">Loads two sample trails. Nothing is saved.</p>
+      <p class="action-note">Opens two sample trails. Your real workspace stays unchanged.</p>
       <p class="privacy-note"><span aria-hidden="true">●</span> Local-first · no account · free Markdown & CSV export</p></div>
-      <figure class="hero-art"><picture><source media="(max-width: 640px)" srcset="/assets/hero-trail-640.webp"><img src="/assets/hero-trail.webp" width="960" height="640" alt="A blank index card connected by a blue paper trail to an open research book and evidence note" fetchpriority="high" decoding="async"></picture><figcaption>Follow the blue trail: claim, source, location, reason.</figcaption></figure>
+      <figure class="hero-art"><picture><source media="(max-width: 640px)" srcset="/assets/hero-trail-640.webp"><img src="/assets/hero-trail.webp" width="960" height="640" alt="A blank index card connected by a blue paper trail to an open research book and evidence note" fetchpriority="high" decoding="async"></picture><figcaption>Each trail records a claim, source, location, and reason.</figcaption></figure>
     </section>
-    <section id="how-it-works" class="how-it-works" aria-labelledby="how-title"><p class="eyebrow">The reasoning chain</p><h2 id="how-title">A citation is only one link.</h2><ol>
+    <section id="how-it-works" class="how-it-works" aria-labelledby="how-title"><p class="eyebrow">The reasoning chain</p><h2 id="how-title">The four parts of a claim trail</h2><ol>
       <li><span>1</span><strong>Claim</strong><p>Write one idea that needs evidence.</p></li><li><span>2</span><strong>Source</strong><p>Name where the evidence comes from.</p></li><li><span>3</span><strong>Exact place</strong><p>Record the page, section, or paragraph.</p></li><li><span>4</span><strong>Reason</strong><p>Explain the connection in your words.</p></li>
     </ol></section>
     <section id="workspace" class="workspace" aria-labelledby="workspace-title">
-      <div class="section-head"><div><p class="eyebrow">Private workspace</p><h2 id="workspace-title">Your claim trails</h2><p id="trail-summary">${trails.length ? `${trails.length} ${trails.length === 1 ? 'trail' : 'trails'} · ${readyRate(trails)}% ready to spot-check` : 'Nothing is stored until you save a trail.'}</p></div><button class="button primary add-trail" type="button">+ Add claim</button></div>
+      <div class="section-head"><div><p class="eyebrow">Private workspace</p><h2 id="workspace-title">Your claim trails</h2><p id="trail-summary">${trails.length ? `${trails.length} ${trails.length === 1 ? 'trail' : 'trails'} · ${readyRate(trails)}% ready to spot-check` : 'No claim trail is stored until you save it.'}</p></div><button class="button primary add-trail" type="button">+ Add claim</button></div>
       ${storageError ? `<div class="error-banner" role="alert"><strong>Local data error.</strong> ${esc(storageError)}<button class="text-button delete-all" type="button">Delete all local data</button></div>` : ''}
       <div class="toolbar" ${trails.length ? '' : 'hidden'}><label for="search-trails">Search trails<input id="search-trails" type="search" placeholder="Search claims or sources"></label><label for="filter-trails">Show<select id="filter-trails"><option value="all">All trails</option><option value="ready">Ready to spot-check</option><option value="needs-locator">Missing locator</option><option value="counter">Counterevidence</option></select></label><div class="export-group"><button class="button export-md" type="button">Export Markdown</button><button class="button export-csv" type="button">Export CSV</button></div></div>
       <div id="filter-note" class="filter-note" role="status"></div>
@@ -306,6 +314,29 @@ function render(): void {
   else if (path === '/terms') { setMetadata('terms'); app.innerHTML = legalPage('terms'); }
   else { setMetadata(demoMode ? 'demo' : 'home'); app.innerHTML = homePage(); }
   bindGlobalEvents();
+}
+
+function focusRoute(): void {
+  const heading = document.querySelector<HTMLElement>('main h1');
+  if (!heading) return;
+  heading.setAttribute('tabindex', '-1');
+  requestAnimationFrame(() => {
+    heading.focus({ preventScroll: true });
+    const announcer = document.querySelector<HTMLElement>('#route-announcer');
+    if (announcer) announcer.textContent = `${document.title.replace(' — Claim Source Trail', '')} page loaded.`;
+  });
+}
+
+function navigate(url: URL): void {
+  history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  render();
+  focusRoute();
+  if (url.hash) document.querySelector(url.hash)?.scrollIntoView();
+}
+
+function isSpaRoute(url: URL): boolean {
+  return url.origin === location.origin && ['/', '/privacy', '/terms'].includes(url.pathname) &&
+    !(url.pathname === '/' && url.searchParams.get('demo') === '1');
 }
 
 function bindGlobalEvents(): void {
@@ -468,6 +499,19 @@ render();
 updateOnlineState();
 window.addEventListener('online', updateOnlineState);
 window.addEventListener('offline', updateOnlineState);
+document.addEventListener('click', (event) => {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const anchor = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[href]');
+  if (!anchor || anchor.target || anchor.hasAttribute('download')) return;
+  const url = new URL(anchor.href);
+  if (!isSpaRoute(url) || (url.pathname === location.pathname && url.search === location.search && url.hash)) return;
+  event.preventDefault();
+  navigate(url);
+});
+window.addEventListener('popstate', () => {
+  render();
+  focusRoute();
+});
 
 if (!demoMode && license.unlocked && settings.retentionDays) {
   const retained = applyRetention(trails, settings.retentionDays);

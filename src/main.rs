@@ -1,6 +1,11 @@
 use claim_source_trail::{app, migrate};
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
-use std::{env, net::SocketAddr, path::PathBuf, str::FromStr};
+use std::{
+    env,
+    net::SocketAddr,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
@@ -17,8 +22,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let port = env::var("PORT")
         .unwrap_or_else(|_| "8080".into())
         .parse::<u16>()?;
-    let database_url =
-        env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://data/claim-source-trail.db".into());
+    let supplied_database_url = env::var("DATABASE_URL").ok();
+    let database_url = supplied_database_url.clone().unwrap_or_else(|| {
+        if Path::new("/data").is_dir() {
+            "sqlite:///data/claim-source-trail.db".into()
+        } else {
+            "sqlite://data/claim-source-trail.db".into()
+        }
+    });
     if let Some(path) = database_url
         .strip_prefix("sqlite://")
         .and_then(|path| PathBuf::from(path).parent().map(PathBuf::from))
@@ -33,7 +44,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("dist"));
     let listener = TcpListener::bind(("0.0.0.0", port)).await?;
-    tracing::info!(port, "claim-source-trail listening");
+    tracing::info!(
+        port,
+        database_config = if supplied_database_url.is_some() {
+            "supplied"
+        } else {
+            "generated-default"
+        },
+        "claim-source-trail listening"
+    );
     axum::serve(
         listener,
         app(pool, dist_dir).into_make_service_with_connect_info::<SocketAddr>(),
