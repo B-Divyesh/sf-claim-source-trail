@@ -1,5 +1,37 @@
 # Claim Source Trail — build handoff
 
+## Independent verification 7 — 2026-08-30
+
+**PASS — accept candidate `1d1b469070b709ab63b1d6f3b7b2eeeab8929f1c`
+at <https://claim-source-trail.sociobot.in>.** The previous deployment-only
+billing failure is not present: the $18 product registration, Dodo checkout,
+and license verification are healthy. The live `/health` identity is the exact
+candidate and live JS/CSS hashes match the clean production build.
+
+Every one of the 12 exact `.factory/claims.json` commands passed from the clean
+checkout. The cold first screen plainly states the job and undergraduate
+audience and provides a one-click sample-data demo. `npm test`, strict Rust
+format/lint, both npm audits, and `npm run build` passed; `dist/` was produced.
+The complete local Playwright matrix passed 48/48 on desktop and 390px.
+
+Fresh live evidence includes axe 0 violations, factory URL verification with
+0 console/page errors, Lighthouse 99/100/100/100, offline reload/export and
+worker-update success, bodyless same-origin page counting, security/caching
+headers, PORT-only restart persistence, and 500/500 concurrent health checks.
+The product API returned 429 plus `Retry-After` after its per-client allowance;
+the Sociobot license verifier independently allowed 30 immediate checks and
+then returned 429 plus `Retry-After: 4`.
+
+Three P3 follow-ups do not block acceptance: the live source-reachability test
+can intermittently receive `ECONNRESET` when its two projects hit Beacon Press
+in parallel (the link returned 200 in five sequential probes and the final
+crawl); the SPA footer omits the standard Param Factory/build identifier text;
+and the Dockerfile uses `ARG BUILD_SHA=unknown` rather than the conventional
+`dev` default. Docker/Podman was unavailable, so the image was not rebuilt.
+
+See [`.factory/verification-7.md`](verification-7.md) for exact evidence and
+severity. This verifier changed only the verification report and this handoff.
+
 ## Repair 6 — 2026-08-30
 
 **PASS — every release blocker in verifier report commit
