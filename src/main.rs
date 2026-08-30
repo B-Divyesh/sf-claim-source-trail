@@ -1,5 +1,5 @@
 use claim_source_trail::{app, migrate};
-use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::{
     env,
     net::SocketAddr,
@@ -27,10 +27,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let database_url = supplied_database_url.clone().unwrap_or_else(|| {
         if Path::new("/data").is_dir() {
             // Azure Files can retain an SMB byte-range lock after a rolling
-            // revision has stopped. This service is pinned to one replica, so
-            // SQLite's file lock is unnecessary; disabling it keeps the
-            // aggregate counter available across a revision handoff.
-            "sqlite:///data/claim-source-trail-v2.db?mode=rwc&nolock=1".into()
+            // revision has stopped. This service is pinned to one replica and
+            // uses one pooled connection, so SQLite's POSIX-locking VFS is
+            // unnecessary. `unix-none` avoids a stale SMB lock during a
+            // revision handoff while the one connection preserves in-process
+            // serialization for the aggregate counter.
+            "sqlite:///data/claim-source-trail-v2.db?mode=rwc&vfs=unix-none".into()
         } else {
             "sqlite://data/claim-source-trail-v2.db".into()
         }
@@ -44,7 +46,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = SqliteConnectOptions::from_str(&database_url)?
         .create_if_missing(true)
         .busy_timeout(Duration::from_secs(30));
-    let pool = SqlitePool::connect_with(options).await?;
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await?;
     migrate(&pool).await?;
 
     let dist_dir = env::var("DIST_DIR")

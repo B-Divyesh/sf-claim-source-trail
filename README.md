@@ -43,7 +43,7 @@ Configuration is environment-only:
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `8080` | HTTP listener port |
-| `DATABASE_URL` | `/data/claim-source-trail-v2.db` (SQLite `nolock=1`, one replica) when `/data` exists, otherwise `data/claim-source-trail-v2.db` | Aggregate page-count database |
+| `DATABASE_URL` | `/data/claim-source-trail-v2.db` (SQLite `unix-none` VFS with one pooled connection and one replica) when `/data` exists, otherwise `data/claim-source-trail-v2.db` | Aggregate page-count database |
 | `DIST_DIR` | `dist` | Built frontend directory |
 | `RUST_LOG` | `info,tower_http=info` | Structured JSON log filter |
 | `BUILD_SHA` | `development` | Value returned by `/health` when set at compile time |
