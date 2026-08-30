@@ -28,6 +28,13 @@
     "sandbox": "open / from a fresh browser context; create, complete, and export a trail without any sign-in or account step"
   },
   {
+    "id": "trail-workflow",
+    "claim": "Create, revise, search, filter, and reversibly delete claim trails, including counterevidence and readiness status.",
+    "where": "workspace, README",
+    "test": "npm run test:e2e -- --grep @claim:trail-workflow",
+    "sandbox": "fresh real workspace; create complete counterevidence, edit it, search and filter it, delete it, undo, and assert status throughout"
+  },
+  {
     "id": "offline-reload",
     "claim": "The sample workspace works offline after the first visit.",
     "where": "README",
@@ -35,10 +42,45 @@
     "sandbox": "new browser context; open /?demo=1, wait for the service worker, set offline, reload, and assert the sample trail and offline notice render"
   },
   {
+    "id": "offline-export",
+    "claim": "Markdown and CSV exports keep working offline after the first visit.",
+    "where": "offline notice, README",
+    "test": "npm run test:e2e -- --grep @claim:offline-export",
+    "sandbox": "new browser context; cache /?demo=1, go offline, reload, download both formats, and assert sample content in each file"
+  },
+  {
     "id": "paid-checkout",
     "claim": "The $18 Instructor kit opens Sociobot/Dodo checkout.",
     "where": "Instructor kit panel, terms, README",
     "test": "npm run test:e2e -- --grep @claim:paid-checkout",
     "sandbox": "open the home page and assert the advertised checkout endpoint responds with a 303 redirect to checkout.dodopayments.com without following it"
+  },
+  {
+    "id": "instructor-tools",
+    "claim": "An active Instructor kit adds a local cohort pulse, course labels in Markdown, and 7/30/90-day retention choices.",
+    "where": "Instructor kit panel, terms, README",
+    "test": "npm run test:e2e -- --grep @claim:instructor-tools",
+    "sandbox": "seed a current cached license verdict plus old/recent local trails; assert cohort counts, automatic deletion, every retention choice, and a labeled Markdown export"
+  },
+  {
+    "id": "anonymous-page-count",
+    "claim": "A visit sends one bodyless page-count request; claim and source content is not sent to the backend, which stores only a date and count.",
+    "where": "privacy page, README",
+    "test": "npm run test:e2e -- --grep @claim:anonymous-page-count && cargo test claim_anonymous_page_count_stores_only_day_and_count",
+    "sandbox": "record requests while creating a private trail; assert the sole POST is same-origin and bodyless, then assert the SQLite page_views table has only day and count columns"
+  },
+  {
+    "id": "complete-deletion",
+    "claim": "Delete all local data removes trails, settings, page-count state, and the Instructor kit credential.",
+    "where": "workspace, privacy page",
+    "test": "npm run test:e2e -- --grep @claim:complete-deletion",
+    "sandbox": "seed every product-owned storage namespace, use the in-product deletion control, and assert no product-owned key remains"
+  },
+  {
+    "id": "license-verification",
+    "claim": "A license token is sent only to the Sociobot product endpoint and a valid verdict is reused for at most one day.",
+    "where": "privacy page, README",
+    "test": "npx vitest run src/license.test.ts -t @claim:license-verification",
+    "sandbox": "mock the Sociobot response, assert the exact product-scoped URL, then verify a second check uses the cached daily verdict without another request"
   }
 ]

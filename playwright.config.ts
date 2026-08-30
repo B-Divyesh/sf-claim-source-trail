@@ -15,7 +15,9 @@ export default defineConfig({
     command: 'npm run test:server',
     url: `${localBaseUrl}/health`,
     reuseExistingServer: false,
-    timeout: 240_000
+    // A clean worker has neither npm nor Rust build artifacts. The first exact
+    // claim command must be allowed to compile the release binary once.
+    timeout: 600_000
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },

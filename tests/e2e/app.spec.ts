@@ -36,6 +36,37 @@ test('first screen names students and a trail can be created and exported withou
   expect(errors).toEqual([]);
 });
 
+test('trails can be revised, searched, filtered, and reversibly deleted @claim:trail-workflow', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add your first claim' }).click();
+  await page.getByLabel('Arguable claim Required').fill('Archives can omit community memory.');
+  await page.getByLabel('Source title Required').fill('Silencing the Past');
+  await page.getByLabel('Exact locator').fill('Chapter 1, p. 26');
+  await page.getByLabel('Short excerpt or close paraphrase').fill('Silences enter while sources are made.');
+  await page.getByLabel('Why does this evidence support or complicate the claim?').fill('The passage identifies omissions in archive formation.');
+  await page.getByLabel('Mark as counterevidence').check();
+  await page.getByRole('button', { name: 'Save trail' }).click();
+  await expect(page.locator('.status.complete')).toContainText('Ready to spot-check');
+  await expect(page.locator('.stance.counter')).toContainText('Counterevidence');
+
+  await page.getByRole('button', { name: 'Edit trail' }).click();
+  await page.getByLabel('Arguable claim Required').fill('Archives can omit local community memory.');
+  await page.getByRole('button', { name: 'Save trail' }).click();
+  await expect(page.getByRole('heading', { level: 3, name: 'Archives can omit local community memory.' })).toBeVisible();
+
+  await page.getByLabel('Search trails').fill('nothing matches this');
+  await expect(page.getByText('No trails match.')).toBeVisible();
+  await page.getByLabel('Search trails').fill('local community');
+  await page.getByLabel('Show').selectOption('counter');
+  await expect(page.locator('.trail-card')).toHaveCount(1);
+
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('Archives can omit local community memory.');
+  await page.getByRole('button', { name: 'Delete trail' }).click();
+  await expect(page.getByText('Trail deleted.')).toBeVisible();
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('heading', { level: 3, name: 'Archives can omit local community memory.' })).toBeVisible();
+});
+
 test('sample trails export to useful Markdown and CSV @claim:free-exports', async ({ page }) => {
   await page.goto('/?demo=1#workspace');
   await expect(page).toHaveTitle('Demo — Claim Source Trail');
@@ -108,7 +139,7 @@ test('saved counterevidence card has no serious accessibility violations', async
   expect(results.violations.filter((item) => ['serious', 'critical'].includes(item.impact || ''))).toEqual([]);
 });
 
-test('Delete all local data removes license credentials and every product-owned key', async ({ page }) => {
+test('Delete all local data removes license credentials and every product-owned key @claim:complete-deletion', async ({ page }) => {
   await page.evaluate(() => {
     localStorage.setItem('sb_license:claim-source-trail', 'reusable-license-token');
     localStorage.setItem('sb_license:claim-source-trail:verdict', JSON.stringify({ valid: true, checkedAt: Date.now() }));
@@ -173,6 +204,32 @@ test('maximum-length unbroken metadata stays inside the viewport', async ({ page
   expect(sourceLink!.height).toBeGreaterThanOrEqual(44);
 });
 
+test('invalid source references are announced and never become dead links', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add your first claim' }).click();
+  await page.getByLabel('Arguable claim Required').fill('Source references should lead to evidence.');
+  await page.getByLabel('Source title Required').fill('Reference validation study');
+  await page.getByLabel('DOI or URL').fill('this is not a DOI or URL');
+  await page.getByRole('button', { name: 'Save trail' }).click();
+
+  await expect(page.getByRole('alert')).toContainText('Enter a full http(s) URL or a DOI beginning with 10.');
+  await expect(page.getByLabel('DOI or URL')).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByLabel('DOI or URL').fill('10.4324/9780203602263');
+  await page.getByRole('button', { name: 'Save trail' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page.locator('.trail-steps a')).toHaveAttribute('href', 'https://doi.org/10.4324/9780203602263');
+  await expect(page.locator('a[href="#"]')).toHaveCount(0);
+});
+
+test('the shipped counterevidence sample points to a reachable source', async ({ page, request }) => {
+  await page.goto('/?demo=1#workspace');
+  const source = page.locator('.trail-card').filter({ hasText: 'Silencing the Past' }).locator('.trail-steps a');
+  const href = await source.getAttribute('href');
+  expect(href).toBe('https://www.beacon.org/Silencing-the-Past-P1851.aspx');
+  const response = await request.get(href!);
+  expect(response.status()).toBeLessThan(400);
+});
+
 test('persistent navigation and legal links have 44px touch targets', async ({ page }) => {
   const selectors = ['.wordmark', '.site-header nav a', '.purchase-box .microcopy a', 'footer nav a'];
   for (const selector of selectors) {
@@ -217,6 +274,84 @@ test('cached demo workspace opens offline @claim:offline-reload', async ({ brows
   }
 });
 
+test('sample Markdown and CSV exports still download offline @claim:offline-export', async ({ browser }) => {
+  const offlineContext = await browser.newContext({ acceptDownloads: true });
+  try {
+    const offlinePage = await offlineContext.newPage();
+    await offlinePage.goto('/?demo=1#workspace');
+    await offlinePage.evaluate(() => navigator.serviceWorker.ready);
+    await offlinePage.reload();
+    await offlineContext.setOffline(true);
+    await offlinePage.reload();
+
+    const markdownDownload = offlinePage.waitForEvent('download');
+    await offlinePage.getByRole('button', { name: 'Export Markdown' }).click();
+    const markdownPath = await (await markdownDownload).path();
+    expect(await readFile(markdownPath!, 'utf8')).toContain('The Uses of Heritage');
+
+    const csvDownload = offlinePage.waitForEvent('download');
+    await offlinePage.getByRole('button', { name: 'Export CSV' }).click();
+    const csvPath = await (await csvDownload).path();
+    expect(await readFile(csvPath!, 'utf8')).toContain('Archives can leave out community memory.');
+  } finally {
+    await offlineContext.close();
+  }
+});
+
+test('a page count is bodyless and claim content never reaches the server @claim:anonymous-page-count', async ({ page }) => {
+  await page.evaluate(() => localStorage.removeItem('claim-source-trail:page-counted'));
+  const requests: Array<{ url: string; method: string; body: string | null }> = [];
+  page.on('request', (request) => requests.push({
+    url: request.url(), method: request.method(), body: request.postData()
+  }));
+  await page.reload();
+  await expect.poll(() => requests.filter((request) => request.url.endsWith('/api/page-view')).length).toBe(1);
+
+  await page.getByRole('button', { name: 'Add your first claim' }).click();
+  await page.getByLabel('Arguable claim Required').fill('Private claim text must stay in the browser.');
+  await page.getByLabel('Source title Required').fill('Private source title');
+  await page.getByRole('button', { name: 'Save trail' }).click();
+
+  const posts = requests.filter((request) => request.method === 'POST');
+  expect(posts).toEqual([expect.objectContaining({ body: null })]);
+  expect(posts[0].url).toBe(`${new URL(page.url()).origin}/api/page-view`);
+  expect(JSON.stringify(requests)).not.toContain('Private claim text');
+  expect(JSON.stringify(requests)).not.toContain('Private source title');
+});
+
+test('an active Instructor kit applies its local tools @claim:instructor-tools', async ({ page }) => {
+  const now = new Date().toISOString();
+  await page.evaluate(({ now }) => {
+    const trail = (id: string, updatedAt: string) => ({
+      id, claim: `${id} claim`, sourceTitle: `${id} source`, authors: '', sourceRef: '', year: '',
+      locator: 'p. 4', evidence: 'Evidence', reason: 'Reason', counterevidence: id === 'recent',
+      createdAt: updatedAt, updatedAt
+    });
+    localStorage.setItem('claim-source-trail:trails:v1', JSON.stringify([
+      trail('old', '2020-01-01T00:00:00.000Z'), trail('recent', now)
+    ]));
+    localStorage.setItem('claim-source-trail:settings:v1', JSON.stringify({ courseLabel: '', retentionDays: 30 }));
+    localStorage.setItem('sb_license:claim-source-trail', 'cached-valid-license');
+    localStorage.setItem('sb_license:claim-source-trail:verdict', JSON.stringify({ valid: true, checkedAt: Date.now() }));
+  }, { now });
+  await page.reload();
+
+  await expect(page.getByText('Instructor kit · unlocked')).toBeVisible();
+  await expect(page.getByLabel('Local trail overview')).toContainText('1Total trails');
+  await expect(page.getByText('old claim')).toHaveCount(0);
+  await expect(page.getByText('recent claim')).toBeVisible();
+  await expect(page.getByLabel('Automatic local deletion').locator('option')).toHaveText([
+    'Never', 'After 7 days', 'After 30 days', 'After 90 days'
+  ]);
+
+  await page.getByLabel('Course or assignment label').fill('HIST 201');
+  await page.getByLabel('Course or assignment label').dispatchEvent('change');
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export Markdown' }).click();
+  const path = await (await download).path();
+  expect(await readFile(path!, 'utf8')).toContain('# HIST 201');
+});
+
 test('service worker update check keeps an active application shell', async ({ page }) => {
   const worker = await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
@@ -248,7 +383,23 @@ test('legal routes are real, readable pages', async ({ page }) => {
   await page.goto('/privacy');
   await expect(page).toHaveTitle('Privacy — Claim Source Trail');
   await expect(page.getByRole('heading', { level: 1, name: 'Privacy, by design' })).toBeVisible();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://claim-source-trail.sociobot.in/privacy');
+  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', 'https://claim-source-trail.sociobot.in/privacy');
   await page.goto('/terms');
   await expect(page).toHaveTitle('Terms — Claim Source Trail');
   await expect(page.getByRole('heading', { level: 1, name: 'Terms of use' })).toBeVisible();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://claim-source-trail.sociobot.in/terms');
+  await page.goto('/?demo=1');
+  await expect(page).toHaveTitle('Demo — Claim Source Trail');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://claim-source-trail.sociobot.in/?demo=1');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /social-preview\.webp$/);
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('sizes', '180x180');
+});
+
+test('unknown routes return the designed 404 document', async ({ page }) => {
+  const response = await page.goto('/definitely-not-a-route');
+  expect(response?.status()).toBe(404);
+  await expect(page).toHaveTitle('Page not found — Claim Source Trail');
+  await expect(page.getByRole('heading', { level: 1, name: 'That trail ends here.' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Return to workspace' })).toHaveAttribute('href', '/');
 });

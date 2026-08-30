@@ -61,6 +61,46 @@ function shell(content: string, page: 'home' | 'privacy' | 'terms'): string {
     </footer>`;
 }
 
+const SITE_ORIGIN = 'https://claim-source-trail.sociobot.in';
+const SOCIAL_IMAGE = `${SITE_ORIGIN}/assets/social-preview.webp`;
+
+function setMetadata(page: 'home' | 'demo' | 'privacy' | 'terms'): void {
+  const metadata = {
+    home: {
+      title: 'Claim Source Trail — connect claims to evidence',
+      description: 'Build inspectable trails from claims to exact source locations and reasoning.',
+      url: `${SITE_ORIGIN}/`
+    },
+    demo: {
+      title: 'Demo — Claim Source Trail',
+      description: 'Try two isolated sample claim trails without changing your real workspace.',
+      url: `${SITE_ORIGIN}/?demo=1`
+    },
+    privacy: {
+      title: 'Privacy — Claim Source Trail',
+      description: 'See what Claim Source Trail stores locally and what reaches its server.',
+      url: `${SITE_ORIGIN}/privacy`
+    },
+    terms: {
+      title: 'Terms — Claim Source Trail',
+      description: 'Read the terms for the free workspace and one-time Instructor kit.',
+      url: `${SITE_ORIGIN}/terms`
+    }
+  }[page];
+  document.title = metadata.title;
+  document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute('content', metadata.description);
+  document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute('href', metadata.url);
+  for (const [selector, value] of [
+    ['meta[property="og:title"]', metadata.title],
+    ['meta[property="og:description"]', metadata.description],
+    ['meta[property="og:url"]', metadata.url],
+    ['meta[property="og:image"]', SOCIAL_IMAGE],
+    ['meta[name="twitter:title"]', metadata.title],
+    ['meta[name="twitter:description"]', metadata.description],
+    ['meta[name="twitter:image"]', SOCIAL_IMAGE]
+  ] as const) document.querySelector<HTMLMetaElement>(selector)?.setAttribute('content', value);
+}
+
 function legalPage(kind: 'privacy' | 'terms'): string {
   const isPrivacy = kind === 'privacy';
   const content = isPrivacy ? `
@@ -98,6 +138,7 @@ function statusClass(status: TrailStatus): string {
 function trailCard(trail: Trail): string {
   const status = trailStatus(trail);
   const source = [trail.authors, trail.sourceTitle, trail.year].filter(Boolean).join(' · ');
+  const sourceLink = sourceHref(trail.sourceRef);
   return `<article class="trail-card" data-id="${trail.id}">
     <div class="card-topline">
       <span class="status ${statusClass(status)}"><span aria-hidden="true">${status === 'ready' ? '✓' : '!'}</span> ${statusLabel(status)}</span>
@@ -105,7 +146,7 @@ function trailCard(trail: Trail): string {
     </div>
     <h3>${esc(trail.claim)}</h3>
     <dl class="trail-steps">
-      <div><dt><span>2</span> Source</dt><dd>${esc(source || trail.sourceRef)}</dd>${trail.sourceRef ? `<dd><a href="${safeHref(trail.sourceRef)}" target="_blank" rel="noopener noreferrer">${esc(trail.sourceRef)}</a></dd>` : ''}</div>
+      <div><dt><span>2</span> Source</dt><dd>${esc(source || trail.sourceRef)}</dd>${sourceLink ? `<dd><a href="${esc(sourceLink)}" target="_blank" rel="noopener noreferrer">${esc(trail.sourceRef)}</a></dd>` : ''}</div>
       <div><dt><span>3</span> Exact location</dt><dd>${esc(trail.locator) || '<em>Not recorded yet</em>'}</dd></div>
       <div><dt><span>3b</span> Excerpt / paraphrase</dt><dd>${esc(trail.evidence) || '<em>Not recorded yet</em>'}</dd></div>
       <div><dt><span>4</span> Why it supports the claim</dt><dd>${esc(trail.reason) || '<em>Not recorded yet</em>'}</dd></div>
@@ -118,14 +159,15 @@ function trailCard(trail: Trail): string {
   </article>`;
 }
 
-function safeHref(ref: string): string {
+function sourceHref(ref: string): string | null {
   const value = ref.trim();
+  if (!value) return null;
   try {
     const url = new URL(value);
-    return ['http:', 'https:'].includes(url.protocol) ? esc(url.href) : '#';
+    return ['http:', 'https:'].includes(url.protocol) && Boolean(url.hostname) ? url.href : null;
   } catch {
     const doi = value.replace(/^doi:\s*/i, '');
-    return /^10\.\d{4,9}\/.+/.test(doi) ? `https://doi.org/${encodeURIComponent(doi)}` : '#';
+    return /^10\.\d{4,9}\/\S+$/.test(doi) ? `https://doi.org/${doi}` : null;
   }
 }
 
@@ -148,7 +190,7 @@ function sampleTrails(): Trail[] {
     }),
     createTrail({
       claim: 'Archives can leave out community memory.',
-      sourceTitle: 'Silencing the Past', authors: 'Michel-Rolph Trouillot', year: '1995', sourceRef: 'https://doi.org/10.2307/j.ctv125j7k8',
+      sourceTitle: 'Silencing the Past', authors: 'Michel-Rolph Trouillot', year: '1995', sourceRef: 'https://www.beacon.org/Silencing-the-Past-P1851.aspx',
       locator: 'Chapter 1, p. 26', evidence: 'Silences enter the making of sources and archives.',
       reason: 'This complicates a claim that an archive is a complete record of the past.', counterevidence: true
     })
@@ -209,7 +251,8 @@ function editorDialog(): string {
       <fieldset><legend><span>2</span> Name the source</legend>
         <label for="source-title">Source title <small>Required</small></label><input id="source-title" name="sourceTitle" maxlength="300" required>
         <div class="two-columns"><label for="authors">Author(s)<input id="authors" name="authors" maxlength="200"></label><label for="year">Year<input id="year" name="year" inputmode="numeric" maxlength="20"></label></div>
-        <label for="source-ref">DOI or URL<input id="source-ref" name="sourceRef" maxlength="500" placeholder="https://… or 10.…"></label>
+        <label for="source-ref">DOI or URL<input id="source-ref" name="sourceRef" maxlength="500" placeholder="https://… or 10.…" aria-describedby="source-ref-hint"></label>
+        <p class="hint" id="source-ref-hint">Optional. Enter a full http(s) URL or a DOI beginning with 10.</p>
       </fieldset>
       <fieldset><legend><span>3</span> Pinpoint the evidence</legend>
         <label for="locator">Exact locator<input id="locator" name="locator" maxlength="180" placeholder="p. 42, para. 3 · section ‘Methods’"></label>
@@ -259,9 +302,9 @@ function homePage(): string {
 
 function render(): void {
   const path = location.pathname.replace(/\/$/, '') || '/';
-  if (path === '/privacy') { document.title = 'Privacy — Claim Source Trail'; app.innerHTML = legalPage('privacy'); }
-  else if (path === '/terms') { document.title = 'Terms — Claim Source Trail'; app.innerHTML = legalPage('terms'); }
-  else { document.title = demoMode ? 'Demo — Claim Source Trail' : 'Claim Source Trail — connect every claim to evidence'; app.innerHTML = homePage(); }
+  if (path === '/privacy') { setMetadata('privacy'); app.innerHTML = legalPage('privacy'); }
+  else if (path === '/terms') { setMetadata('terms'); app.innerHTML = legalPage('terms'); }
+  else { setMetadata(demoMode ? 'demo' : 'home'); app.innerHTML = homePage(); }
   bindGlobalEvents();
 }
 
@@ -339,13 +382,17 @@ function saveEditor(event: SubmitEvent): void {
   const data = new FormData(form);
   const claim = String(data.get('claim') || '').trim();
   const sourceTitle = String(data.get('sourceTitle') || '').trim();
+  const sourceRef = String(data.get('sourceRef') || '').trim();
   const errors: string[] = [];
   if (!claim) errors.push('Write the claim you want to connect.');
   if (!sourceTitle) errors.push('Name the source title.');
+  if (sourceRef && !sourceHref(sourceRef)) errors.push('Enter a full http(s) URL or a DOI beginning with 10.');
   const errorBox = document.querySelector<HTMLElement>('#form-errors')!;
-  if (errors.length) { errorBox.innerHTML = `<strong>Fix ${errors.length === 1 ? 'this item' : 'these items'}:</strong><ul>${errors.map((error) => `<li>${error}</li>`).join('')}</ul>`; errorBox.hidden = false; errorBox.focus(); return; }
+  const sourceRefInput = form.elements.namedItem('sourceRef') as HTMLInputElement;
+  sourceRefInput.setAttribute('aria-invalid', sourceRef && !sourceHref(sourceRef) ? 'true' : 'false');
+  if (errors.length) { errorBox.innerHTML = `<strong>Fix ${errors.length === 1 ? 'this item' : 'these items'}:</strong><ul>${errors.map((error) => `<li>${error}</li>`).join('')}</ul>`; errorBox.hidden = false; sourceRefInput.setAttribute('aria-describedby', 'source-ref-hint form-errors'); errorBox.focus(); return; }
   const values = {
-    claim, sourceTitle, authors: String(data.get('authors') || '').trim(), sourceRef: String(data.get('sourceRef') || '').trim(),
+    claim, sourceTitle, authors: String(data.get('authors') || '').trim(), sourceRef,
     year: String(data.get('year') || '').trim(), locator: String(data.get('locator') || '').trim(), evidence: String(data.get('evidence') || '').trim(),
     reason: String(data.get('reason') || '').trim(), counterevidence: data.get('counterevidence') === 'on'
   };

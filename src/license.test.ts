@@ -14,7 +14,7 @@ describe('Instructor kit licensing', () => {
     expect(cachedLicenseState().unlocked).toBe(false);
   });
 
-  it('unlocks after Sociobot verifies the restored token', async () => {
+  it('sends the token only to Sociobot and reuses the daily verdict @claim:license-verification', async () => {
     restoreLicense('license-token');
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ valid: true, reason: 'ok' }), {
       status: 200,
@@ -22,7 +22,9 @@ describe('Instructor kit licensing', () => {
     }));
     vi.stubGlobal('fetch', fetchMock);
     await expect(verifyLicense(true)).resolves.toMatchObject({ unlocked: true });
-    expect(fetchMock.mock.calls[0][0]).toContain('/claim-source-trail/verify?license=license-token');
+    await expect(verifyLicense()).resolves.toMatchObject({ unlocked: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.sociobot.in/api/v1/products/claim-source-trail/verify?license=license-token');
     expect(cachedLicenseState().unlocked).toBe(true);
   });
 

@@ -110,11 +110,15 @@ pub fn app(pool: SqlitePool, dist_dir: PathBuf) -> Router {
     let api = Router::new()
         .route("/api/page-view", post(page_view))
         .layer(GovernorLayer::new(page_view_limit));
-    let spa = ServeDir::new(&dist_dir).fallback(ServeFile::new(dist_dir.join("index.html")));
+    let static_files =
+        ServeDir::new(&dist_dir).not_found_service(ServeFile::new(dist_dir.join("404.html")));
     Router::new()
         .route("/health", get(health))
         .merge(api)
-        .fallback_service(spa)
+        .route_service("/", ServeFile::new(dist_dir.join("index.html")))
+        .route_service("/privacy", ServeFile::new(dist_dir.join("index.html")))
+        .route_service("/terms", ServeFile::new(dist_dir.join("index.html")))
+        .fallback_service(static_files)
         .layer(middleware::from_fn(cache_policy))
         .layer(SetResponseHeaderLayer::if_not_present(
             header::X_CONTENT_TYPE_OPTIONS,
@@ -191,7 +195,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn page_view_increments_only_aggregate_day() {
+    async fn claim_anonymous_page_count_stores_only_day_and_count() {
         let (app, pool) = test_app().await;
         for _ in 0..2 {
             let response = app
@@ -287,7 +291,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn spa_routes_return_index_with_success_status() {
+    async fn known_spa_routes_return_index_and_unknown_routes_use_designed_404() {
         let pool = SqlitePoolOptions::new()
             .max_connections(1)
             .connect("sqlite::memory:")
@@ -300,7 +304,14 @@ mod tests {
             "<!doctype html><title>App</title>",
         )
         .unwrap();
-        let response = app(pool, directory.path().to_path_buf())
+        std::fs::write(
+            directory.path().join("404.html"),
+            "<!doctype html><title>Not found</title><h1>That trail ends here.</h1>",
+        )
+        .unwrap();
+        let router = app(pool, directory.path().to_path_buf());
+        let response = router
+            .clone()
             .oneshot(
                 Request::builder()
                     .uri("/privacy")
@@ -310,6 +321,17 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .uri("/definitely-not-a-route")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]

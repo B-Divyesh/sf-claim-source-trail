@@ -1,7 +1,8 @@
-const CACHE = 'claim-source-trail-v2';
+const CACHE = 'claim-source-trail-v3';
 const SHELL = [
-  '/', '/privacy', '/terms',
-  '/assets/hero-trail.webp', '/assets/hero-trail-640.webp',
+  '/', '/privacy', '/terms', '/404.html', '/404.css',
+  '/assets/hero-trail.webp', '/assets/hero-trail-640.webp', '/assets/social-preview.webp',
+  '/favicon.svg', '/apple-touch-icon.png',
   '/fonts/atkinson-400.woff2', '/fonts/atkinson-700.woff2'
 ];
 

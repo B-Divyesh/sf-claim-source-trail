@@ -8,14 +8,27 @@ Audited 2026-08-30. Every complete landing-page sentence is 22 words or fewer an
 | Your work stays in this browser. | 6 |
 | Loads two sample trails. | 5 |
 | Nothing is saved. | 4 |
+| Follow the blue trail: claim, source, location, reason. | 8 |
 | Write one idea that needs evidence. | 7 |
 | Name where the evidence comes from. | 7 |
 | Record the page, section, or paragraph. | 7 |
 | Explain the connection in your words. | 7 |
 | Nothing is stored until you save a trail. | 9 |
+| Attach the exact place in a source—not only the source itself—then explain the connection in your own words. | 18 |
 | Unlock a local cohort pulse, course labels on Markdown exports, and automatic 7/30/90-day retention. | 14 |
 | The complete student workspace and both exports remain free. | 9 |
+| One-time purchase. | 2 |
+| Checkout and refunds are handled by Sociobot/Dodo. | 7 |
+| See terms. | 2 |
 | Two research trails are ready to inspect and export. | 9 |
+| This overview is calculated on this device. | 7 |
+| No student work is uploaded. | 5 |
+| Retention uses each trail’s last-edited date and runs when this app opens. | 12 |
+| Reasoning practice, not truth verification. | 5 |
+| Hero art generated for this product with Azure OpenAI. | 9 |
+| No student work is sent to an AI model. | 9 |
+
+“Unlock” appears only for the literal paid license action, which the plain-words policy permits. No sentence exceeds 22 words.
 
 ## Terminology
 
