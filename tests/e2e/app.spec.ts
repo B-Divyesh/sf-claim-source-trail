@@ -8,12 +8,14 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
-test('creates, completes, and exports a claim trail', async ({ page }) => {
+test('first screen names students and a trail can be created and exported without an account @claim:no-account', async ({ page }) => {
   const errors: string[] = [];
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
 
   await expect(page).toHaveTitle(/Claim Source Trail/);
   await expect(page.locator('h1')).toHaveCount(1);
+  await expect(page.locator('.lead')).toContainText('Undergraduate humanities and social-science students');
+  await expect(page.getByRole('link', { name: /sign in|log in|create account/i })).toHaveCount(0);
   await page.getByRole('button', { name: 'Add your first claim' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByLabel('Arguable claim Required').fill('Public memorials shape shared history.');
@@ -213,6 +215,33 @@ test('cached demo workspace opens offline @claim:offline-reload', async ({ brows
   } finally {
     await offlineContext.close();
   }
+});
+
+test('service worker update check keeps an active application shell', async ({ page }) => {
+  const worker = await page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.ready;
+    await registration.update();
+    return {
+      active: registration.active?.state,
+      scope: registration.scope,
+      waiting: registration.waiting?.state ?? null
+    };
+  });
+
+  expect(worker.active).toBe('activated');
+  expect(new URL(worker.scope).pathname).toBe('/');
+  expect(worker.waiting).toBeNull();
+});
+
+test('reduced-motion preference removes interface transitions', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const motion = await page.locator('.button.primary').first().evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { animationDuration: style.animationDuration, transitionDuration: style.transitionDuration };
+  });
+
+  expect(Number.parseFloat(motion.animationDuration)).toBeLessThanOrEqual(0.00001);
+  expect(Number.parseFloat(motion.transitionDuration)).toBeLessThanOrEqual(0.00001);
 });
 
 test('legal routes are real, readable pages', async ({ page }) => {

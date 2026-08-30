@@ -1,6 +1,6 @@
 use claim_source_trail::{app, migrate};
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
-use std::{env, path::PathBuf, str::FromStr};
+use std::{env, net::SocketAddr, path::PathBuf, str::FromStr};
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
@@ -34,9 +34,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|_| PathBuf::from("dist"));
     let listener = TcpListener::bind(("0.0.0.0", port)).await?;
     tracing::info!(port, "claim-source-trail listening");
-    axum::serve(listener, app(pool, dist_dir))
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        app(pool, dist_dir).into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
     Ok(())
 }
 

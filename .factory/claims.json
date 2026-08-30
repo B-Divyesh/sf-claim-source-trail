@@ -21,6 +21,13 @@
     "sandbox": "edit a sample trail in /?demo=1 while recording requests; assert every request is same-origin"
   },
   {
+    "id": "no-account",
+    "claim": "Create and export a claim trail without an account.",
+    "where": "landing facts, README",
+    "test": "npm run test:e2e -- --grep @claim:no-account",
+    "sandbox": "open / from a fresh browser context; create, complete, and export a trail without any sign-in or account step"
+  },
+  {
     "id": "offline-reload",
     "claim": "The sample workspace works offline after the first visit.",
     "where": "README",

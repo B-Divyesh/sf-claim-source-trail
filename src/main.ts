@@ -236,7 +236,7 @@ function homePage(): string {
   return shell(`${demoBanner()}<main id="main">
     <section class="hero">
       <div class="hero-copy"><p class="kicker">Claim → source → location → reasoning</p><h1>Make every claim traceable.</h1>
-      <p class="lead">Build a compact evidence trail your reader—or instructor—can actually check. Your work stays in this browser.</p>
+      <p class="lead">Undergraduate humanities and social-science students build evidence trails that readers and instructors can check. Your work stays in this browser.</p>
       <div class="button-row"><a class="button primary" href="/?demo=1#workspace">Try it with sample data</a><button class="button add-trail" type="button">Build a claim trail</button><a class="button ghost" href="#how-it-works">See the four steps</a></div>
       <p class="action-note">Loads two sample trails. Nothing is saved.</p>
       <p class="privacy-note"><span aria-hidden="true">●</span> Local-first · no account · free Markdown & CSV export</p></div>

@@ -1,6 +1,6 @@
 use axum::{
     body::Body,
-    extract::State,
+    extract::{ConnectInfo, State},
     http::{header, HeaderName, HeaderValue, Request, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -9,9 +9,12 @@ use axum::{
 };
 use serde::Serialize;
 use sqlx::SqlitePool;
-use std::path::PathBuf;
+use std::{
+    net::{IpAddr, SocketAddr},
+    path::PathBuf,
+};
 use tower_governor::{
-    governor::GovernorConfigBuilder, key_extractor::GlobalKeyExtractor, GovernorLayer,
+    governor::GovernorConfigBuilder, key_extractor::KeyExtractor, GovernorError, GovernorLayer,
 };
 use tower_http::{
     services::{ServeDir, ServeFile},
@@ -28,6 +31,29 @@ pub struct AppState {
 struct Health {
     status: &'static str,
     build: &'static str,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ForwardedClientIp;
+
+impl KeyExtractor for ForwardedClientIp {
+    type Key = IpAddr;
+
+    fn extract<T>(&self, request: &Request<T>) -> Result<Self::Key, GovernorError> {
+        request
+            .headers()
+            .get("x-forwarded-for")
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.split(',').next())
+            .and_then(|value| value.trim().parse::<IpAddr>().ok())
+            .or_else(|| {
+                request
+                    .extensions()
+                    .get::<ConnectInfo<SocketAddr>>()
+                    .map(|address| address.ip())
+            })
+            .ok_or(GovernorError::UnableToExtractKey)
+    }
 }
 
 pub async fn migrate(pool: &SqlitePool) -> Result<(), sqlx::Error> {
@@ -78,7 +104,7 @@ pub fn app(pool: SqlitePool, dist_dir: PathBuf) -> Router {
     let page_view_limit = GovernorConfigBuilder::default()
         .per_second(1)
         .burst_size(40)
-        .key_extractor(GlobalKeyExtractor)
+        .key_extractor(ForwardedClientIp)
         .finish()
         .expect("valid page-view rate limit");
     let api = Router::new()
@@ -174,6 +200,7 @@ mod tests {
                     Request::builder()
                         .method("POST")
                         .uri("/api/page-view")
+                        .header("x-forwarded-for", "203.0.113.10")
                         .body(Body::empty())
                         .unwrap(),
                 )
@@ -195,12 +222,62 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn page_view_limit_uses_first_forwarded_ip_and_keeps_clients_separate() {
+        let (app, _) = test_app().await;
+
+        for _ in 0..40 {
+            let response = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .method("POST")
+                        .uri("/api/page-view")
+                        .header("x-forwarded-for", "203.0.113.20, 10.0.0.1")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        }
+
+        let limited = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/page-view")
+                    .header("x-forwarded-for", "203.0.113.20, 10.0.0.2")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(limited.status(), StatusCode::TOO_MANY_REQUESTS);
+        assert!(limited.headers().contains_key(header::RETRY_AFTER));
+
+        let separate_client = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/page-view")
+                    .header("x-forwarded-for", "203.0.113.21, 10.0.0.1")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(separate_client.status(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
     async fn api_rejects_wrong_method() {
         let (app, _) = test_app().await;
         let response = app
             .oneshot(
                 Request::builder()
                     .uri("/api/page-view")
+                    .header("x-forwarded-for", "203.0.113.30")
                     .body(Body::empty())
                     .unwrap(),
             )

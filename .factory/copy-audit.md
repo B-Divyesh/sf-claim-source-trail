@@ -1,10 +1,10 @@
 # Landing-page copy audit
 
-Audited 2026-08-29. Every complete landing-page sentence is 22 words or fewer and contains none of the banned marketing terms.
+Audited 2026-08-30. Every complete landing-page sentence is 22 words or fewer and contains none of the banned marketing terms.
 
 | Landing copy | Words |
 | --- | ---: |
-| Build a compact evidence trail your reader—or instructor—can actually check. | 11 |
+| Undergraduate humanities and social-science students build evidence trails that readers and instructors can check. | 13 |
 | Your work stays in this browser. | 6 |
 | Loads two sample trails. | 5 |
 | Nothing is saved. | 4 |

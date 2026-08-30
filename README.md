@@ -13,7 +13,7 @@ Try the isolated sample workspace: <https://claim-source-trail.sociobot.in/?demo
 - Create, revise, search, filter, and delete claim trails, including counterevidence.
 - See whether a trail is ready to spot-check or still needs a locator, evidence, or reasoning.
 - Export all work as Markdown or CSV for free.
-- Keep all claim/source content in browser `localStorage`; no account is needed.
+- Create and export a claim trail without an account. Claim/source content stays in browser `localStorage`.
 - Continue using the cached app shell and exports offline.
 - Optionally unlock the $18 one-time Instructor kit through Sociobot billing. It adds a local cohort pulse, course labels, and automatic retention settings; core export and accessibility are never gated.
 
@@ -51,7 +51,7 @@ Configuration is environment-only:
 ```bash
 npm test              # Vitest units + Rust route/integration tests
 npm run build         # type-check, Vite -> dist/, release Rust binary
-npm run test:e2e      # Playwright desktop + 390px flows and axe checks; server must run on :8080
+npm run test:e2e      # Builds and starts the release server, then runs desktop + 390px flows and axe checks
 npm run test:billing  # live product registration and no-purchase checkout redirect check
 npm audit --omit=dev
 ```
@@ -62,7 +62,7 @@ For a simple load smoke after starting the release server:
 npx autocannon -c 20 -d 10 http://127.0.0.1:8080/health
 ```
 
-The page-count route is intentionally rate-limited. Browser tests require `npx playwright install chromium` once.
+The page-count route is rate-limited per first `X-Forwarded-For` client IP. Set `BASE_URL` to test an already-running or live server. Browser tests require `npx playwright install chromium` once.
 
 ## Container
 
