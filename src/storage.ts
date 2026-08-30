@@ -3,6 +3,9 @@ import type { Trail } from './model';
 const TRAILS_KEY = 'claim-source-trail:trails:v1';
 const SETTINGS_KEY = 'claim-source-trail:settings:v1';
 const PRODUCT_STORAGE_PREFIXES = ['claim-source-trail:', 'sb_license:claim-source-trail'];
+const DEMO_PREFIX = 'demo:';
+
+export type StorageScope = 'real' | 'demo';
 
 export interface Settings {
   courseLabel: string;
@@ -11,8 +14,12 @@ export interface Settings {
 
 const defaults: Settings = { courseLabel: '', retentionDays: 0 };
 
-export function loadTrails(): Trail[] {
-  const raw = localStorage.getItem(TRAILS_KEY);
+function scopedKey(key: string, scope: StorageScope): string {
+  return scope === 'demo' ? `${DEMO_PREFIX}${key}` : key;
+}
+
+export function loadTrails(scope: StorageScope = 'real'): Trail[] {
+  const raw = localStorage.getItem(scopedKey(TRAILS_KEY, scope));
   if (!raw) return [];
   const value: unknown = JSON.parse(raw);
   if (!Array.isArray(value)) throw new Error('Saved trail data is not a list.');
@@ -21,29 +28,38 @@ export function loadTrails(): Trail[] {
   ));
 }
 
-export function saveTrails(trails: Trail[]): void {
-  localStorage.setItem(TRAILS_KEY, JSON.stringify(trails));
+export function saveTrails(trails: Trail[], scope: StorageScope = 'real'): void {
+  localStorage.setItem(scopedKey(TRAILS_KEY, scope), JSON.stringify(trails));
 }
 
-export function loadSettings(): Settings {
+export function loadSettings(scope: StorageScope = 'real'): Settings {
   try {
-    return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
+    return { ...defaults, ...JSON.parse(localStorage.getItem(scopedKey(SETTINGS_KEY, scope)) || '{}') };
   } catch {
     return defaults;
   }
 }
 
-export function saveSettings(settings: Settings): void {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+export function saveSettings(settings: Settings, scope: StorageScope = 'real'): void {
+  localStorage.setItem(scopedKey(SETTINGS_KEY, scope), JSON.stringify(settings));
 }
 
-export function clearLocalData(): void {
+function ownsProductKey(key: string, scope?: StorageScope): boolean {
+  const isDemo = key.startsWith(DEMO_PREFIX);
+  const unscoped = isDemo ? key.slice(DEMO_PREFIX.length) : key;
+  const owned = PRODUCT_STORAGE_PREFIXES.some((prefix) => unscoped.startsWith(prefix));
+  if (!owned) return false;
+  return scope === undefined || (scope === 'demo' ? isDemo : !isDemo);
+}
+
+export function clearLocalData(scope?: StorageScope): void {
   // This is the complete-deletion control promised in the privacy policy. Keep
-  // the namespace list here so future product-owned keys are cleared too.
+  // the namespace list here so future product-owned keys are cleared too. Demo
+  // data may be reset independently and must never touch a real workspace.
   const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
     .filter((key): key is string => key !== null);
   keys
-    .filter((key) => PRODUCT_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix)))
+    .filter((key) => ownsProductKey(key, scope))
     .forEach((key) => localStorage.removeItem(key));
 }
 

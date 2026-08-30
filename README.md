@@ -6,6 +6,8 @@ It is intentionally not a fact checker, essay generator, or reference manager. I
 
 Live product: <https://claim-source-trail.sociobot.in>
 
+Try the isolated sample workspace: <https://claim-source-trail.sociobot.in/?demo=1#workspace>. It opens two realistic research trails without reading or writing a real workspace.
+
 ## Product behavior
 
 - Create, revise, search, filter, and delete claim trails, including counterevidence.
@@ -50,6 +52,7 @@ Configuration is environment-only:
 npm test              # Vitest units + Rust route/integration tests
 npm run build         # type-check, Vite -> dist/, release Rust binary
 npm run test:e2e      # Playwright desktop + 390px flows and axe checks; server must run on :8080
+npm run test:billing  # live product registration and no-purchase checkout redirect check
 npm audit --omit=dev
 ```
 
@@ -68,7 +71,7 @@ docker build --build-arg BUILD_SHA=$(git rev-parse --short HEAD) -t claim-source
 docker run --rm -p 8080:8080 -v claim-source-data:/app/data claim-source-trail
 ```
 
-The multi-stage image runs as an unprivileged user and serves both the Axum API and `dist/` on port 8080. Deployment infrastructure, DNS, and product registration are managed outside this repository.
+The multi-stage image runs as an unprivileged user and serves both the Axum API and `dist/` on port 8080. Deployment infrastructure and DNS are managed outside this repository. The registered production Instructor kit is checked without submitting a payment by `npm run test:billing`.
 
 ## Privacy, billing, and licenses
 

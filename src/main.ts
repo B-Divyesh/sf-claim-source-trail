@@ -3,16 +3,18 @@ import {
   createTrail, readyRate, statusLabel, toCsv, toMarkdown, trailStatus, type Trail, type TrailStatus
 } from './model';
 import {
-  applyRetention, clearLocalData, loadSettings, loadTrails, saveSettings, saveTrails, type Settings
+  applyRetention, clearLocalData, loadSettings, loadTrails, saveSettings, saveTrails, type Settings, type StorageScope
 } from './storage';
 import {
   cachedLicenseState, captureLicenseFromUrl, checkoutUrl, restoreLicense, verifyLicense, type LicenseState
 } from './license';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
+const demoMode = new URLSearchParams(location.search).get('demo') === '1';
+const storageScope: StorageScope = demoMode ? 'demo' : 'real';
 let trails: Trail[] = [];
-let settings: Settings = loadSettings();
-let license: LicenseState = cachedLicenseState();
+let settings: Settings = loadSettings(storageScope);
+let license: LicenseState = demoMode ? { unlocked: false, notice: '' } : cachedLicenseState();
 let storageError = '';
 let editingId: string | null = null;
 let deletedTrail: Trail | null = null;
@@ -20,12 +22,17 @@ let undoTimer = 0;
 let previousFocus: HTMLElement | null = null;
 
 try {
-  trails = loadTrails();
+  trails = loadTrails(storageScope);
 } catch {
   storageError = 'Your saved trails could not be read. Delete the unreadable local data below, then start again.';
 }
 
-const capturedLicense = captureLicenseFromUrl();
+if (demoMode && !trails.length && !storageError) {
+  trails = sampleTrails();
+  saveTrails(trails, storageScope);
+}
+
+const capturedLicense = demoMode ? false : captureLicenseFromUrl();
 if (capturedLicense) license = { unlocked: false, notice: 'Checking your new license…' };
 
 function esc(value: string): string {
@@ -42,7 +49,7 @@ function shell(content: string, page: 'home' | 'privacy' | 'terms'): string {
         Claim Source Trail
       </a>
       <nav aria-label="Primary navigation">
-        ${page === 'home' ? '<a href="#workspace">Workspace</a><a href="#instructor">Instructor kit</a>' : '<a href="/">Workspace</a>'}
+        ${page === 'home' ? '<a href="/?demo=1#workspace">Demo</a><a href="#workspace">Workspace</a><a href="#instructor">Instructor kit</a>' : '<a href="/">Workspace</a><a href="/?demo=1#workspace">Demo</a>'}
         <a href="/privacy" ${page === 'privacy' ? 'aria-current="page"' : ''}>Privacy</a>
       </nav>
     </header>
@@ -131,6 +138,28 @@ function emptyState(): string {
   </section>`;
 }
 
+function sampleTrails(): Trail[] {
+  return [
+    createTrail({
+      claim: 'Public memorials shape which histories a community treats as shared.',
+      sourceTitle: 'The Uses of Heritage', authors: 'Laurajane Smith', year: '2006', sourceRef: 'https://doi.org/10.4324/9780203602263',
+      locator: 'Introduction, pp. 1–3', evidence: 'Heritage is described as a cultural process that produces meaning in the present.',
+      reason: 'This links public memorials to active choices about collective historical understanding.', counterevidence: false
+    }),
+    createTrail({
+      claim: 'Archives can leave out community memory.',
+      sourceTitle: 'Silencing the Past', authors: 'Michel-Rolph Trouillot', year: '1995', sourceRef: 'https://doi.org/10.2307/j.ctv125j7k8',
+      locator: 'Chapter 1, p. 26', evidence: 'Silences enter the making of sources and archives.',
+      reason: 'This complicates a claim that an archive is a complete record of the past.', counterevidence: true
+    })
+  ];
+}
+
+function demoBanner(): string {
+  if (!demoMode) return '';
+  return `<aside class="demo-banner" aria-label="Demo mode"><div><strong>Demo — sample data, nothing is saved.</strong><span>Two research trails are ready to inspect and export.</span></div><div class="demo-actions"><button class="text-button reset-demo" type="button">Reset demo</button><a class="text-button start-real" href="/">Start for real</a></div></aside>`;
+}
+
 function paidPanel(): string {
   if (license.unlocked) {
     return `<section id="instructor" class="instructor unlocked" aria-labelledby="instructor-title">
@@ -204,11 +233,12 @@ function deleteDialog(): string {
 }
 
 function homePage(): string {
-  return shell(`<main id="main">
+  return shell(`${demoBanner()}<main id="main">
     <section class="hero">
       <div class="hero-copy"><p class="kicker">Claim → source → location → reasoning</p><h1>Make every claim traceable.</h1>
       <p class="lead">Build a compact evidence trail your reader—or instructor—can actually check. Your work stays in this browser.</p>
-      <div class="button-row"><button class="button primary add-trail" type="button">Build a claim trail</button><a class="button ghost" href="#how-it-works">See the four steps</a></div>
+      <div class="button-row"><a class="button primary" href="/?demo=1#workspace">Try it with sample data</a><button class="button add-trail" type="button">Build a claim trail</button><a class="button ghost" href="#how-it-works">See the four steps</a></div>
+      <p class="action-note">Loads two sample trails. Nothing is saved.</p>
       <p class="privacy-note"><span aria-hidden="true">●</span> Local-first · no account · free Markdown & CSV export</p></div>
       <figure class="hero-art"><picture><source media="(max-width: 640px)" srcset="/assets/hero-trail-640.webp"><img src="/assets/hero-trail.webp" width="960" height="640" alt="A blank index card connected by a blue paper trail to an open research book and evidence note" fetchpriority="high" decoding="async"></picture><figcaption>Follow the blue trail: claim, source, location, reason.</figcaption></figure>
     </section>
@@ -229,9 +259,9 @@ function homePage(): string {
 
 function render(): void {
   const path = location.pathname.replace(/\/$/, '') || '/';
-  if (path === '/privacy') app.innerHTML = legalPage('privacy');
-  else if (path === '/terms') app.innerHTML = legalPage('terms');
-  else app.innerHTML = homePage();
+  if (path === '/privacy') { document.title = 'Privacy — Claim Source Trail'; app.innerHTML = legalPage('privacy'); }
+  else if (path === '/terms') { document.title = 'Terms — Claim Source Trail'; app.innerHTML = legalPage('terms'); }
+  else { document.title = demoMode ? 'Demo — Claim Source Trail' : 'Claim Source Trail — connect every claim to evidence'; app.innerHTML = homePage(); }
   bindGlobalEvents();
 }
 
@@ -249,10 +279,16 @@ function bindGlobalEvents(): void {
   }));
   document.querySelectorAll<HTMLButtonElement>('.delete-trail').forEach((button) => button.addEventListener('click', () => openDelete(button.dataset.id!)));
   document.querySelector('.delete-all')?.addEventListener('click', () => {
-    const subject = storageError ? 'the unreadable local data' : `all ${trails.length} local claim trails, settings, and this device's Instructor kit license`;
+    const subject = demoMode ? 'all sample data in this demo' : storageError ? 'the unreadable local data' : `all ${trails.length} local claim trails, settings, and this device's Instructor kit license`;
     if (confirm(`Delete ${subject}? This cannot be undone.`)) {
-      clearLocalData(); trails = []; settings = loadSettings(); license = { unlocked: false, notice: '' }; storageError = ''; render(); announce('All local data was deleted.');
+      clearLocalData(demoMode ? 'demo' : undefined); trails = []; settings = loadSettings(storageScope); license = { unlocked: false, notice: '' }; storageError = ''; render(); announce(demoMode ? 'Demo data was deleted.' : 'All local data was deleted.');
     }
+  });
+  document.querySelector('.reset-demo')?.addEventListener('click', () => {
+    clearLocalData('demo'); trails = sampleTrails(); saveTrails(trails, 'demo'); storageError = ''; render(); announce('Demo reset with fresh sample trails.');
+  });
+  document.querySelector('.start-real')?.addEventListener('click', (event) => {
+    event.preventDefault(); clearLocalData('demo'); location.assign('/');
   });
   document.querySelectorAll<HTMLButtonElement>('.close-dialog').forEach((button) => button.addEventListener('click', closeEditor));
   document.querySelector('.cancel-delete')?.addEventListener('click', () => (document.querySelector<HTMLDialogElement>('#delete-dialog')?.close()));
@@ -315,7 +351,7 @@ function saveEditor(event: SubmitEvent): void {
   };
   if (editingId) trails = trails.map((trail) => trail.id === editingId ? { ...trail, ...values, updatedAt: new Date().toISOString() } : trail);
   else trails = [createTrail(values), ...trails];
-  try { saveTrails(trails); } catch { announce('Could not save. Check this browser’s storage settings.'); return; }
+  try { saveTrails(trails, storageScope); } catch { announce('Could not save. Check this browser’s storage settings.'); return; }
   closeEditor(); render(); announce(editingId ? 'Trail updated.' : 'Trail saved locally.');
 }
 
@@ -330,9 +366,9 @@ function openDelete(id: string): void {
 function confirmDelete(): void {
   if (!deletedTrail) return;
   const removed = deletedTrail;
-  trails = trails.filter((trail) => trail.id !== removed.id); saveTrails(trails);
+  trails = trails.filter((trail) => trail.id !== removed.id); saveTrails(trails, storageScope);
   document.querySelector<HTMLDialogElement>('#delete-dialog')?.close(); render();
-  announce('Trail deleted.', 'Undo', () => { trails = [removed, ...trails]; saveTrails(trails); render(); announce('Trail restored.'); });
+  announce('Trail deleted.', 'Undo', () => { trails = [removed, ...trails]; saveTrails(trails, storageScope); render(); announce('Trail restored.'); });
   deletedTrail = null;
 }
 
@@ -371,7 +407,7 @@ function saveKitSettings(): void {
     courseLabel: document.querySelector<HTMLInputElement>('#course-label')?.value.trim() || '',
     retentionDays: Number(document.querySelector<HTMLSelectElement>('#retention-days')?.value || 0)
   };
-  saveSettings(settings); announce('Instructor settings saved locally.');
+  saveSettings(settings, storageScope); announce('Instructor settings saved locally.');
 }
 
 function updateOnlineState(event?: Event): void {
@@ -386,12 +422,12 @@ updateOnlineState();
 window.addEventListener('online', updateOnlineState);
 window.addEventListener('offline', updateOnlineState);
 
-if (license.unlocked && settings.retentionDays) {
+if (!demoMode && license.unlocked && settings.retentionDays) {
   const retained = applyRetention(trails, settings.retentionDays);
-  if (retained.length !== trails.length) { const count = trails.length - retained.length; trails = retained; saveTrails(trails); render(); announce(`${count} expired local ${count === 1 ? 'trail was' : 'trails were'} deleted by your retention setting.`); }
+  if (retained.length !== trails.length) { const count = trails.length - retained.length; trails = retained; saveTrails(trails, storageScope); render(); announce(`${count} expired local ${count === 1 ? 'trail was' : 'trails were'} deleted by your retention setting.`); }
 }
 
-if (localStorage.getItem('claim-source-trail:page-counted') !== new Date().toISOString().slice(0, 10)) {
+if (!demoMode && localStorage.getItem('claim-source-trail:page-counted') !== new Date().toISOString().slice(0, 10)) {
   fetch('/api/page-view', { method: 'POST', keepalive: true }).then((response) => {
     if (response.ok) localStorage.setItem('claim-source-trail:page-counted', new Date().toISOString().slice(0, 10));
   }).catch(() => undefined);
@@ -399,6 +435,6 @@ if (localStorage.getItem('claim-source-trail:page-counted') !== new Date().toISO
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) navigator.serviceWorker.register('/sw.js').catch(() => undefined);
 
-if (localStorage.getItem('sb_license:claim-source-trail')) {
+if (!demoMode && localStorage.getItem('sb_license:claim-source-trail')) {
   verifyLicense(capturedLicense).then((state) => { license = state; if ((location.pathname.replace(/\/$/, '') || '/') === '/') render(); });
 }

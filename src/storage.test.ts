@@ -41,4 +41,20 @@ describe('local persistence', () => {
     expect(applyRetention([trail], 30, now)).toEqual([]);
     expect(applyRetention([trail], 0, now)).toHaveLength(1);
   });
+
+  it('keeps demo trails in their own resettable namespace', () => {
+    saveTrails([trail]);
+    saveSettings({ courseLabel: 'HIST 202', retentionDays: 7 }, 'demo');
+    saveTrails([{ ...trail, id: 'sample' }], 'demo');
+
+    expect(loadTrails()).toEqual([trail]);
+    expect(loadTrails('demo')[0].id).toBe('sample');
+    expect(loadSettings('demo')).toEqual({ courseLabel: 'HIST 202', retentionDays: 7 });
+
+    clearLocalData('demo');
+
+    expect(loadTrails()).toEqual([trail]);
+    expect(loadTrails('demo')).toEqual([]);
+    expect(loadSettings('demo')).toEqual({ courseLabel: '', retentionDays: 0 });
+  });
 });
