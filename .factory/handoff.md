@@ -1,5 +1,93 @@
 # Claim Source Trail — build handoff
 
+## Repair 5 — 2026-08-30
+
+**PASS — every release blocker in verifier report commit
+`eb9ec3a4f01a85b59e1b841806796a492d14b4ca` for candidate
+`0f49eb8281d778edc229af22a131b5522dc0bca9` is repaired, covered, pushed,
+and deployed.** The researched brief, local-first trail workflow, isolated demo,
+free exports, paid Instructor kit, neo-brutalist visual system, and Rust/Axum
+container artifact class are unchanged.
+
+### Reproduction and root causes
+
+- The verifier's exact `npm run test:e2e -- --grep @claim:free-exports`
+  command was reproduced from the clean checkout: both desktop and mobile
+  failed with `ERR_CONNECTION_REFUSED` at `127.0.0.1:8080`. The Playwright
+  configuration had a base URL but no server lifecycle.
+- The cold first screen was inspected and reproduced the audience omission:
+  “Build a compact evidence trail your reader—or instructor—can actually
+  check” did not identify the undergraduate humanities/social-science student
+  described by the brief.
+- The backend used `GlobalKeyExtractor`; the verifier's first client consumed
+  the only 40-request bucket and caused a distinct forwarded client to receive
+  429. This was a global limiter, not an ingress-client limiter.
+- The first-screen “no account” promise had no dedicated claim entry or tagged
+  observable test.
+
+### Repairs and exact regression coverage
+
+- Playwright now starts the real production frontend plus Axum server when
+  `BASE_URL` is absent. Supplying `BASE_URL` continues to test an existing or
+  live deployment. Each command in `.factory/claims.json` is self-contained
+  from `npm ci` and stops its server after the run.
+- The first-screen sentence now names “Undergraduate humanities and
+  social-science students” in 13 words. The normal-workflow browser test
+  asserts that audience on the cold first screen.
+- The page-view limiter now keys on the first valid `X-Forwarded-For` hop and
+  falls back to Axum socket `ConnectInfo` for direct clients. The server now
+  supplies that connection metadata. A Rust route test consumes all 40 tokens
+  for one first hop, proves a changed proxy hop remains 429 with
+  `Retry-After`, then proves a new first hop receives 204.
+- Added the `no-account` claim. Its one tagged Playwright test starts with
+  empty storage, confirms no sign-in/account action, creates and completes a
+  trail, and downloads its export.
+- Added browser regression checks for service-worker update state and reduced
+  motion while preserving all previous checks.
+
+### Verification evidence
+
+| Check | Result |
+| --- | --- |
+| Clean dependencies | `npm ci` installed 213 packages. `npm audit` and `npm audit --omit=dev` passed with 0 vulnerabilities. Playwright remains pinned to 1.58.2. |
+| Unit/integration | `npm test` passed: Vitest 3 files / 11 tests; Rust 6 tests, binary target, and doc tests. The sixth Rust test is the forwarded-client limiter regression. |
+| Type, lint, build | `cargo fmt --all -- --check`, strict Clippy, and `npm run build` passed. `dist/` contains the production frontend and the Rust release binary built successfully. |
+| Exact claims | All six exact `.factory/claims.json` commands passed without a prestarted server: 2/2 desktop/mobile variants each, 12/12 total. Each claim ID occurs in exactly one test title. |
+| Local browser | Full Playwright suite passed **34/34** across desktop and 390×844. It covers normal create/edit/export, demo isolation, privacy, deletion/recovery, long values, touch targets, keyboard/focus, legal routes, axe, offline reload, worker update, reduced motion, and checkout. |
+| Live browser | `BASE_URL=https://claim-source-trail.sociobot.in npm run test:e2e` passed the same **34/34** tests. |
+| Accessibility and visual QA | Axe found no serious/critical issues in home, editor, and saved counterevidence states on both projects. `verify-url.sh` passed local in 583 ms and live in 569 ms with one h1, `lang=en`, main, complete alt/button names, and zero console/page errors. Desktop and 390px full-page captures were inspected; no clipping or horizontal overflow was present. |
+| Privacy and PWA | The demo-edit request log remained same-origin. Offline reload retained both sample trails and showed the offline notice. `registration.update()` left one activated root-scoped worker and no waiting worker. |
+| PORT-only startup | The release binary started with an empty environment plus only `PORT=18080`; default SQLite and `dist/` configuration worked. Direct page-view POST returned 204. |
+| Response policy | Local and live root, health, privacy, terms, worker, robots, sitemap, and favicon returned 200. Page-view GET returned 405. CSP, HSTS, Permissions-Policy, nosniff, DENY frame policy, strict referrer policy, document `no-cache`, and immutable hashed-asset caching were present. |
+| Rate limiting | Local 45-request burst: 40×204 / 5×429; same first hop with a changed proxy stayed 429 with `Retry-After`, while another first hop received 204. Live three-replica 180-request burst: 120×204 / 60×429 with the same changed-proxy/new-client results. |
+| Performance budgets | Initial JS 29,577 B raw / 10.18 kB gzip; CSS 15,594 B raw / 4.14 kB gzip; fonts 34,732 B; mobile hero 31,994 B. Local mobile Lighthouse: 99 performance / 100 accessibility / 100 best practices / 100 SEO, LCP 1.9 s, CLS 0, TBT 80 ms. Live: 100/100/100/100, LCP 1.7 s, CLS 0, TBT 0 ms. |
+| Load smoke | Local `/health`, 100 connections for five seconds: 138k requests, 27,486 requests/s average, 3.18 ms average latency, 9 ms p99, 58 ms max. |
+| Billing | `npm run test:billing` passed before and after deployment: the registered product is USD 18 one-time and its Sociobot endpoint redirects to Dodo without a purchase. |
+
+### Deployment evidence
+
+- Implementation commit:
+  `4eeece9215e64f83725bd5ec57c129ab156af4ff` (`fix: repair release
+  verification blockers`), pushed to `origin/main` before deployment.
+- Factory ACR build `ch1c3` succeeded. Image:
+  `sociobotregistry.azurecr.io/sf-claim-source-trail:4eeece9215e6`, digest
+  `sha256:be6949130187f5623bc10d4308f3b2d4d0605a7fb20e459ffece1fb13173db10`.
+- Azure Container Apps revision `sf-claim-source-trail--0000010` reached
+  `Succeeded`, `Running`, and `Healthy` with three replicas during the live
+  rate probe.
+- Live `/health` returned
+  `{"status":"ok","build":"4eeece9215e64f83725bd5ec57c129ab156af4ff"}`.
+  Live `index-cYk9jvdi.js` matched the clean local build at SHA-256
+  `61f3da5bff0f23061c86ecfef15da94033db7dea2c8c46226689c458276f51b9`.
+- The handoff-only commit is pushed and redeployed after this entry so the
+  final live `/health` identity matches repository `main`; it does not change
+  the verified frontend or backend binary behavior.
+
+### Known gaps
+
+None. Package/consumer verification is not applicable to this deployed web
+application. No payment was submitted.
+
 ## Independent verification 5 — 2026-08-30
 
 **FAIL — candidate `0f49eb8281d778edc229af22a131b5522dc0bca9` is deployed
