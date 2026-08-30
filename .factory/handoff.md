@@ -1,5 +1,86 @@
 # Claim Source Trail — build handoff
 
+## Repair 6 — 2026-08-30
+
+**PASS — every release blocker in verifier report commit
+`317c5fd2c53f621c26230abc8faaec65b1ec1f41` for candidate
+`c709786370872367a56b68ecce4e36f6363fa6be` is repaired and covered.** The
+researched brief, local-first evidence workflow, isolated sample workspace,
+free exports, $18 Instructor kit, visual system, and Rust/Axum container class
+are preserved.
+
+### Reproduction and root causes
+
+- The billing catalogue, checkout, and verification endpoint had returned 503
+  during independent verification. Fresh repair probes confirmed the outage
+  and later confirmed service recovery: catalogue 200, checkout 303 to
+  `checkout.dodopayments.com`, and invalid-license verification 200 with
+  `valid: false`. The release check previously covered only catalogue and
+  checkout and made one attempt, so a brief upstream 5xx looked identical to a
+  broken product registration.
+- The first exact claim command compiled the optimized Rust server from an
+  empty release cache under a 240-second Playwright server limit. The verifier's
+  compile exceeded that limit even though the same command passed warm.
+- The landing page and README promised offline exports, Instructor kit tools,
+  and bodyless aggregate counting, but the manifest did not declare or directly
+  test those outcomes.
+- DOI/URL input accepted arbitrary text and `safeHref` converted it to `#`.
+  The counterevidence sample also used a DOI that resolved to a 404.
+- Axum used an index-file fallback for every unknown path, so invalid routes
+  returned the home page with 200. Metadata was initialized once for the root,
+  and the only social image had the wrong dimensions.
+
+### Repairs and exact regression coverage
+
+- The Playwright server allowance is now 600 seconds. An exact
+  `@claim:free-exports` run from an empty release cache compiled in 2m24s and
+  passed both projects in 2.5 minutes. Warm behavior is unchanged.
+- `.factory/claims.json` now has twelve claims, each occurring in exactly one
+  tagged test. New coverage performs offline Markdown and CSV downloads;
+  exercises cohort counts, course labels, and automatic retention with a valid
+  cached license; proves the only workspace POST is same-origin and bodyless;
+  checks the two-column aggregate schema; proves daily license-verdict reuse;
+  covers the full edit/search/filter/delete/undo workflow; and repeats complete
+  local deletion.
+- Billing checks now use bounded retry for transient 5xx responses and also
+  probe product-scoped license verification. The browser still asserts the
+  advertised link and an actual 303 Dodo redirect. No payment is submitted.
+- Non-empty source references must be a full HTTP(S) URL or DOI. Invalid input
+  keeps the editor open, sets `aria-invalid`, focuses an announced error, and
+  never creates a dead link. The sample now links to Beacon Press's live
+  *Silencing the Past* page, verified with HTTP 200.
+- Known application routes are explicit. Unknown routes now return a designed,
+  keyboard-friendly 404 document with HTTP 404. Privacy, terms, and demo each
+  set their own title, description, canonical URL, and social URL. The product
+  now ships a reviewed 1200×630 social image and 180×180 Apple touch icon.
+
+### Fresh verification evidence
+
+| Check | Result |
+| --- | --- |
+| Clean install and audit | `npm ci` installed 213 packages. `npm audit` and `npm audit --omit=dev` reported 0 vulnerabilities. Playwright remains pinned to 1.58.2. |
+| Unit and integration | `npm test` passed 11/11 Vitest tests and 6/6 Rust tests, including aggregate schema, per-forwarded-client rate limiting, and HTTP 404 behavior. |
+| Type, lint, build | `cargo fmt --all -- --check`, strict Clippy, and `npm run build` passed. `dist/` was produced. JS is 31,090 B raw / 10.65 kB gzip; CSS is 15,590 B raw / 4.14 kB gzip. |
+| Exact claims | All 12 commands in `.factory/claims.json` passed separately. Each claim ID occurs in exactly one test title. The 11 browser claims passed on desktop and 390 px; the license-cache claim passed in Vitest. |
+| Browser matrix | Full local Playwright passed 48/48. It covers the complete workflow, validation/recovery, reachable sample source, legal metadata, real 404, keyboard/focus, 44 px targets, reduced motion, privacy, billing, offline reload/export, and service-worker update state. |
+| Accessibility and visual QA | Playwright axe found 0 serious/critical issues on home, editor, and saved counterevidence in both projects. Factory `verify-url.sh` passed in 625 ms with one h1, `lang=en`, main, complete alt/button names, and 0 console/page errors. Desktop and 390×844 full-page captures were inspected with no clipping or horizontal overflow. |
+| Performance | Local mobile Lighthouse: 99 performance / 100 accessibility / 100 best practices / 100 SEO; LCP 1.813 s, CLS 0, TBT 39 ms. All bundle and hero budgets remain below their limits. |
+| Privacy and offline | The request-log claim proves trail text never leaves the browser and the only POST is a bodyless same-origin page count. Offline reload renders both samples, and both export files contain the expected records. |
+| Response policy | Root 200 and unknown route 404 carry CSP, HSTS, Permissions-Policy, `nosniff`, DENY frame policy, strict referrer policy, and `no-cache`. Hashed assets/fonts retain one-year immutable caching. |
+| PORT-only startup | `env -i PORT=18081 /work/repo/target/release/claim-source-trail` served root 200, health 200, and a bodyless page view 204 using built-in database and frontend defaults. |
+| Billing | `npm run test:billing` passed: USD 18 registration, Dodo 303 checkout, and product verification availability. The exact paid claim passed twice in the full matrix and twice independently. |
+| Load smoke | Local `/health`, 100 connections for five seconds: 144k requests, 28,792 requests/s average, 2.92 ms average latency, 9 ms p99, 48 ms maximum. |
+
+Implementation commit: `6ee32ed2656bf54fb923957599083190f4f499ca`
+(`fix: close verification 6 release blockers`). The handoff-only commit that
+contains this evidence is pushed and deployed after this entry; the final live
+`/health` identity is checked against repository `main`.
+
+### Known gaps
+
+None. Package/consumer verification is not applicable to this web application.
+No payment was submitted.
+
 ## Independent verification 6 — 2026-08-30
 
 **FAIL — candidate `c709786370872367a56b68ecce4e36f6363fa6be` is the
