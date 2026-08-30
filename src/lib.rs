@@ -110,7 +110,11 @@ async fn cache_policy(request: Request<Body>, next: Next) -> Response {
 pub fn app(pool: SqlitePool, dist_dir: PathBuf) -> Router {
     let state = AppState { db: pool };
     let page_view_limit = GovernorConfigBuilder::default()
-        .per_second(1)
+        // A page view is intentionally bodyless and anonymous. Keep it well
+        // below an abuse-friendly rate while allowing a shared campus or test
+        // browser cohort to load the product without spuriously dropping a
+        // first visit.
+        .per_second(20)
         .burst_size(40)
         .key_extractor(ForwardedClientIp)
         .finish()
