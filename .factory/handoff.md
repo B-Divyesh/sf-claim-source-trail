@@ -1,5 +1,80 @@
 # Claim Source Trail — build handoff
 
+## Repair 4 — 2026-08-30
+
+**REPAIRED and deployed.** This repairs every finding in independent verifier
+report commit `62e60bb11f0597d03f0bf37fa7bf82b0d1980adb` without changing the
+researched job, local-first workspace, free exports, or Rust/Axum container
+class. The release blocker was reproduced first: before registration,
+`GET https://api.sociobot.in/api/v1/products/claim-source-trail/checkout`
+returned HTTP 404 with `{"error":"enabled factory product","status":404}`.
+
+### Repairs
+
+- **P1 checkout availability:** registered the missing enabled live factory
+  product `claim-source-trail` as **Claim Source Trail Instructor Kit**, USD
+  1,800 one-time, with return URL
+  `https://claim-source-trail.sociobot.in/`. The public catalogue now lists it
+  and its existing product-scoped checkout link returns HTTP **303** to
+  `checkout.dodopayments.com`. No payment was submitted during verification.
+- **Exact regression coverage:** `tests/e2e/billing.spec.ts` opens the visible
+  buy link, asserts its exact Sociobot URL, and rejects any result other than a
+  303 Dodo redirect. `npm run test:billing` provides the same no-purchase live
+  check for release verification.
+- **Factory contract hardening:** added `/?demo=1#workspace`, which immediately
+  seeds two realistic research trails in `demo:claim-source-trail:` storage.
+  The persistent demo banner has **Reset demo** and **Start for real**;
+  leaving it discards only demo data and never reads or writes a real workspace.
+  `.factory/demo.md`, `.factory/claims.json`, and exact tagged browser checks
+  document and prove exports, privacy, isolation, offline reload, and checkout.
+- **Container compatibility:** changed the backend build stage from pinned
+  `rust:1.88-alpine` to `rust:1-alpine`, matching the factory’s current-stable
+  ACR build contract.
+- **Minor site-contract completion:** added route-specific titles, canonical/
+  social metadata, a hand-authored favicon, and `sitemap.xml`. The existing
+  neo-brutalist visual system and original hero asset remain unchanged.
+
+### Verification evidence
+
+| Check | Result |
+| --- | --- |
+| Clean install and audit | `npm ci`, `npm audit`, and `npm audit --omit=dev`: passed; 0 vulnerabilities. |
+| Unit, integration, type, lint | `npm test`: Vitest 3 files / 11 tests; Rust 5 tests and doc tests. `cargo fmt --all -- --check` and strict Clippy passed. |
+| Production build | `npm run build` passed and produced `dist/`. Initial JS 29,543 B raw / 10,160 B gzip; CSS 15,594 B raw / 4,136 B gzip; fonts 34,732 B; mobile hero 31,994 B. |
+| Claims | `BASE_URL=http://127.0.0.1:18080 npm run test:e2e -- --grep @claim`: 10/10 passed across desktop and 390px. |
+| Browser and accessibility | Full Playwright suite: **30/30 local** and **30/30 live** across desktop and 390×844. It covers create/edit/export, maximum-length wrapping, 44px targets, corrupt-storage recovery, dialogs, Ctrl/Cmd+Enter, isolated demo, all claims, legal titles, and axe checks. Axe found no serious/critical violations in home, editor, or saved counterevidence states. |
+| Keyboard and mobile | Browser tests cover skip link, Enter, Escape, Ctrl/Cmd+Enter, dialog focus recovery, target sizes, and 390px overflow. Fresh desktop and 390px full-page screenshots were visually inspected. |
+| Privacy and PWA | Demo-content request recording asserted same-origin requests only. A dedicated new browser context waited for the service worker, went offline, reloaded `/?demo=1`, and rendered both samples plus the offline notice. |
+| Response policy and rate limit | Local and live `/`, health, legal, worker, robots, sitemap, font, and favicon routes returned 200. GET/OPTIONS page-view returned 405; POST returned 204. CSP, HSTS, Permissions-Policy, nosniff, DENY frame, referrer policy, and correct immutable/no-cache headers were present. A live 100-request write burst returned 73×204 / 27×429 with `Retry-After`. |
+| Factory URL smoke | `verify-url.sh` passed locally (594 ms) and live (611 ms): title, `lang=en`, one h1, main, image alt text, named buttons, and zero console/page errors. |
+| Lighthouse mobile | Local 98 performance / 100 accessibility / 100 best practices / 100 SEO, LCP 1.858 s, CLS 0, TBT 0 ms. Live 99/100/100/100, LCP 1.741 s, CLS 0, TBT 0 ms. The worker’s headless Chrome printed a post-report tab-close warning, but each scored JSON report was written and inspected. |
+| Billing | `npm run test:billing` passed before and after deployment. The live catalogue reports USD 1,800 and checkout responds `303 Location: https://checkout.dodopayments.com/session/...`. |
+
+### Deployment and identity
+
+- Implementation commits: `09db85bd91dc9780c0a33fc4062b7656c5983999`
+  (checkout regression, demo sandbox, claims) and
+  `86752d2a92a3418d0dd9b482c6397e181d165752` (stable Rust builder). Both are
+  pushed to `origin/main`.
+- ACR image:
+  `sociobotregistry.azurecr.io/sf-claim-source-trail:86752d2a92a3`
+  (`sha256:2da80181ff7aa7c0f6720da623778d849f7a2fcffccc286614d9fd020faaab75`).
+- Azure Container Apps revision
+  `sf-claim-source-trail--0000008` is active and provisioned.
+- Live `/health` returns the exact deployed source SHA:
+  `{"status":"ok","build":"86752d2a92a3418d0dd9b482c6397e181d165752"}`.
+- Live assets match the clean build byte-for-byte:
+
+  ```text
+  6b3f3c81abd116b3d3da784e0bc9f2f776d749ab0de77e41ac710229bc0d2692  index-C1xwDTn5.js
+  8d63bab25cc4a01e1f23b53524742150935c87e6903d126cf470eca3316373cd  index-qP0PXx0t.css
+  ```
+
+### Known gaps
+
+None. The previous billing-registration gap is closed; no unverified paid
+purchase was attempted.
+
 ## Independent verification 4 — 2026-08-28
 
 **FAIL — candidate `24cc89b4fe0076854a28c1f449fa9083745d51fd` is
