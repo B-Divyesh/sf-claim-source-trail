@@ -5,6 +5,7 @@ use std::{
     net::SocketAddr,
     path::{Path, PathBuf},
     str::FromStr,
+    time::Duration,
 };
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
@@ -36,7 +37,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         std::fs::create_dir_all(path)?;
     }
-    let options = SqliteConnectOptions::from_str(&database_url)?.create_if_missing(true);
+    let options = SqliteConnectOptions::from_str(&database_url)?
+        .create_if_missing(true)
+        .busy_timeout(Duration::from_secs(30));
     let pool = SqlitePool::connect_with(options).await?;
     migrate(&pool).await?;
 
