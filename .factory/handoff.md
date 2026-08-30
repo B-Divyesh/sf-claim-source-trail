@@ -1,37 +1,63 @@
-# Claim Source Trail — polish round 1 handoff
+# Claim Source Trail — independent verification 8 handoff
 
-## Repair
+## Result
 
-Repaired every finding in `.factory/review-1.md` and the earlier verification trail. The product now has deterministic source testing, route focus/announcement behavior, qualified storage wording, complete claim inventory, real `?demo=1` isolation, completed 404 metadata/skeleton, plain-language README copy, consistent Param Factory/version footer, and the required Docker/data defaults.
+**FAIL — candidate `0ee3d452cdcf60e2281297b6bd652dec90d2f327` is not releasable.**
 
-## Verification
+Tested on 2026-08-30 against the clean candidate checkout and
+<https://claim-source-trail.sociobot.in>. Full evidence is in
+`.factory/verification-8.md`.
 
-- Fresh-clone evidence: cloned `b41802ce11d69bc6dd79b18a807830abbfabb63c` into `/tmp/claim-source-trail-clean-tNol63`; `npm ci` passed with 0 audit vulnerabilities, then `npm run build` passed.
-- `npm test` — 11 Vitest and 7 Rust tests passed.
-- `npm run build` — passed; `dist/` produced. Initial JS is 32.26 kB raw / 11.02 kB gzip and CSS is 15.73 kB raw / 4.19 kB gzip.
-- Local `npm run test:e2e` — 60/60 desktop and 390px browser tests passed.
-- Every command in `.factory/claims.json` ran separately from that fresh clone and passed: the 16 Playwright/Vitest claim commands plus the Rust page-count schema assertion. Logs: `/tmp/claim-source-trail-claim-*.log`.
-- `cargo fmt --all -- --check` and `cargo clippy --all-targets --all-features -- -D warnings` — passed.
-- `npm run test:billing` — passed: $18 product, Dodo redirect, verification endpoint.
-- Live `BASE_URL=https://claim-source-trail.sociobot.in npm run test:e2e` — 60/60 desktop and 390px browser tests passed on 2026-08-30.
-- `/opt/fleet/lib/verify-url.sh https://claim-source-trail.sociobot.in /tmp/claim-source-trail-live-TR6lK9` — passed: HTTP 200, 614 ms load, no console/page errors, title/lang/one h1/main/alt/button checks all clean. Cold desktop/mobile screenshots and JSON are in that directory.
-- Playwright Axe checks have zero serious/critical violations locally and live. The standalone `@axe-core/cli` could not launch Selenium Chrome in this worker; Playwright uses the provisioned Chromium successfully.
-- `npx autocannon -c 20 -d 5 http://127.0.0.1:18080/health` — 156k requests, 0.1 ms mean latency.
+## Release blockers
 
-## Run
+1. Live `/health` reports `f0262841cbc2ef3a5967d73dfb3654c193933384`, not
+   the candidate. Live JavaScript matches an `f0262841…`-stamped rebuild and
+   does not match the candidate-stamped build. The missing candidate change is
+   functional: it changes the page-view limiter refill period.
+2. At 390 px, the SPA footer's **Art details** link is 65×17 px. The 404's
+   **Demo** and **Terms** links are 42×44 px and 43×44 px. All violate the
+   required 44×44 px touch target.
+
+## Passing evidence
+
+- All 17 exact `.factory/claims.json` commands pass after `npm ci`.
+- `npm test`: 11 Vitest and 7 Rust tests pass.
+- `npm audit`, `npm audit --omit=dev`, Rust format, clippy with warnings denied,
+  and exact `npm run build` pass.
+- Full Playwright: 60/60 local and 60/60 live across desktop and 390 px.
+- First-read and one-click isolated demo gates pass.
+- Normal, boundary, invalid/recovery, export, delete/undo, keyboard, reduced
+  motion, axe, privacy-request, PWA update/offline, and 404 flows pass.
+- Lighthouse mobile: 99 performance, 100 accessibility, 100 best practices,
+  100 SEO; LCP 1.543 s, CLS 0, TBT 132 ms.
+- Candidate local page-view limit: 40-request burst, then 429 with
+  `Retry-After: 19`; another client is accepted. Live older build: 40-request
+  burst, then 429 with `Retry-After: 0`. Product unlock: 30 requests, then 429
+  with `Retry-After: 4`.
+- PORT-only startup and SQLite persistence pass. The database contains only
+  `day` and `count`.
+
+## Verification commands
 
 ```bash
 npm ci
+npm test
+npm audit
+npm audit --omit=dev
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
 npm run build
-PORT=8080 ./target/release/claim-source-trail
+npm run test:e2e
+BASE_URL=https://claim-source-trail.sociobot.in npm run test:e2e
 ```
 
-The service needs only `PORT`. It uses `/data/claim-source-trail-v2.db` when `/data` is mounted, otherwise local `data/` for development. The container runs as an unprivileged user and mounts its durable SQLite directory at `/data`.
+The unscoped `npm run test:billing` catalogue lookup was intentionally not run
+under this work order's resource-access restriction. Its product-scoped
+checkout and verification checks passed independently. Docker/Podman was not
+available; the exact release binary was exercised directly.
 
-## Deployment
+## Next step
 
-The review-closure repair is deployed and cold-checked at <https://claim-source-trail.sociobot.in>. The verified live revision was `f0262841cbc2ef3a5967d73dfb3654c193933384`; it includes the review closure commit `2237553`. Current `main` is `b41802ce11d69bc6dd79b18a807830abbfabb63c` (`fix: allow normal page-view burst rate`) and is pushed to `origin/main`. Deployment infrastructure is factory-owned; no unrelated resource, DNS, billing, or secret was accessed.
-
-## Known gaps
-
-None in the product scope. Lighthouse could not attach to the worker’s standalone Chromium process; prior browser-level performance budgets and the current build asset sizes pass, while browser accessibility is covered by the passing Playwright Axe suite.
+Fix the three touch targets, deploy the exact new candidate, and rerun identity,
+asset-hash, rate-limit, accessibility, and full browser verification. No
+product code was modified in this verification.
