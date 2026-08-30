@@ -7,7 +7,7 @@ COPY src ./src
 COPY public ./public
 RUN npm run build:frontend
 
-FROM rust:1.88-alpine AS backend
+FROM rust:1-alpine AS backend
 RUN apk add --no-cache musl-dev pkgconfig openssl-dev
 WORKDIR /app
 COPY Cargo.toml Cargo.lock* ./
