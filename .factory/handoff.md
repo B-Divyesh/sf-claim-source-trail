@@ -1,4 +1,25 @@
-# Claim Source Trail — build handoff
+# Claim Source Trail — review handoff
+
+## Adversarial first-read review 1 — 2026-08-30
+
+**FAIL.** No product code was changed. The review added
+`.factory/review-1.md` and ran fresh dependency installation, every declared
+claim command, `npm test`, `npm run build`, cold live mobile/desktop checks,
+demo/privacy request logging, metadata/link/routing checks, and visual
+inspection.
+
+The cold explanation and one-click demo are clear; all 12 declared claims,
+unit tests, and build pass. The product cannot be accepted because a fresh
+non-claim E2E source-reachability check fails intermittently on Beacon Press,
+route changes leave focus on `body`, two earlier P3 handoff findings remain,
+one storage sentence is false, and several landing promises lack claims
+entries. See `.factory/review-1.md` for exact reproduction, copy audit,
+severity, and fixes.
+
+Known gaps: all listed findings remain for the owner to repair. This review
+commit is documentation-only and buildable.
+
+# Previous build handoff
 
 ## Independent verification 7 — 2026-08-30
 
