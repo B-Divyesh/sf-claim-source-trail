@@ -57,6 +57,14 @@ impl KeyExtractor for ForwardedClientIp {
 }
 
 pub async fn migrate(pool: &SqlitePool) -> Result<(), sqlx::Error> {
+    let has_page_views: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'page_views'",
+    )
+    .fetch_one(pool)
+    .await?;
+    if has_page_views > 0 {
+        return Ok(());
+    }
     sqlx::query(include_str!("../migrations/0001_page_views.sql"))
         .execute(pool)
         .await?;
@@ -165,6 +173,24 @@ mod tests {
             .unwrap();
         migrate(&pool).await.unwrap();
         (app(pool.clone(), PathBuf::from("dist")), pool)
+    }
+
+    #[tokio::test]
+    async fn migration_skips_existing_schema_for_rolling_revisions() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        migrate(&pool).await.unwrap();
+        migrate(&pool).await.unwrap();
+        let tables: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'page_views'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(tables, 1);
     }
 
     #[tokio::test]
