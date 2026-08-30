@@ -17,8 +17,6 @@ Candidate repaired from `4176682a01b084e0baee66ac10baaacb8028752b` on 2026-08-30
 | verification-7 P3 footer/build | Closed with shared footer and build ID. | Full suite + 404 assertion pass. |
 | verification-7 P3 Docker default | Closed with `BUILD_SHA=dev`. | `npm run build` pass. |
 | verification-7 P3 flaky source probe | Closed with deterministic local test. | Full suite (60/60) pass. |
-| verification 2–6 P1/P2/P3 | Retained prior fixes for deletion, contrast, mobile bounds/touch targets, recovery, shortcuts, headers, checkout, claims, source validation, metadata, and HTTP 404. | Full 60-test Playwright suite, 6 Rust tests, and all claim commands pass. |
+| verification 2–6 P1/P2/P3 | Retained prior fixes for deletion, contrast, mobile bounds/touch targets, recovery, shortcuts, headers, checkout, claims, source validation, metadata, and HTTP 404. | Full 60-test Playwright suite, 7 Rust tests, and all claim commands pass. |
 
 Fresh-clone evidence: `/tmp/claim-source-trail-clean-tNol63`; individual claim command logs: `/tmp/claim-source-trail-claim-*.log`. Live evidence: `/tmp/claim-source-trail-live-TR6lK9/screenshot-desktop.png`, `/tmp/claim-source-trail-live-TR6lK9/screenshot-mobile.png`, `/tmp/claim-source-trail-live-TR6lK9/demo-mobile.png`, and `/tmp/claim-source-trail-live-TR6lK9/verify.json`. The live URL verifier reports one title, `lang=en`, one `<h1>`, `<main>`, image alt text, and no console/page errors. Live Playwright’s Axe integration found zero serious/critical violations on home, editor, and counterevidence states. The standalone Axe CLI could not start Selenium’s Chrome binary in this worker; the installed Playwright Chromium integration is the accessibility evidence used here.
-
-Live re-check and deployed build evidence are appended to the handoff after deployment.

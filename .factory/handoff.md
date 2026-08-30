@@ -26,7 +26,7 @@ npm run build
 PORT=8080 ./target/release/claim-source-trail
 ```
 
-The service needs only `PORT`. It uses `/data/claim-source-trail.db` when `/data` is mounted, otherwise local `data/` for development. The container runs as an unprivileged user and mounts its durable SQLite directory at `/data`.
+The service needs only `PORT`. It uses `/data/claim-source-trail-v2.db` when `/data` is mounted, otherwise local `data/` for development. The container runs as an unprivileged user and mounts its durable SQLite directory at `/data`.
 
 ## Deployment
 
