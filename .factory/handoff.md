@@ -1,63 +1,76 @@
-# Claim Source Trail — independent verification 8 handoff
+# Claim Source Trail — repair 7 handoff
 
-## Result
+## Outcome
 
-**FAIL — candidate `0ee3d452cdcf60e2281297b6bd652dec90d2f327` is not releasable.**
+The two release blockers in `.factory/verification-8.md` are repaired.
 
-Tested on 2026-08-30 against the clean candidate checkout and
-<https://claim-source-trail.sociobot.in>. Full evidence is in
-`.factory/verification-8.md`.
+- Every visible control on the home, demo, Privacy, Terms, and designed 404 routes now has an effective target of at least 44×44 CSS pixels. The shared SPA footer rule now includes the inline **Art details** link, and the 404 header/footer rule now sets both minimum width and height.
+- The former partial target test now measures every visible link, button, input, select, and text area on all five public states. It runs in the desktop and 390×844 Playwright projects.
+- The exact committed candidate is built and deployed with `BUILD_SHA`; `/health` and the hashed frontend assets are checked against that source after deployment.
 
-## Release blockers
+No researched workflow, claim, visual direction, storage behavior, or paid feature changed.
 
-1. Live `/health` reports `f0262841cbc2ef3a5967d73dfb3654c193933384`, not
-   the candidate. Live JavaScript matches an `f0262841…`-stamped rebuild and
-   does not match the candidate-stamped build. The missing candidate change is
-   functional: it changes the page-view limiter refill period.
-2. At 390 px, the SPA footer's **Art details** link is 65×17 px. The 404's
-   **Demo** and **Terms** links are 42×44 px and 43×44 px. All violate the
-   required 44×44 px touch target.
+## Reproduction and regression
 
-## Passing evidence
+Before the repair, a fresh 390×844 browser measured the same failures locally and live:
 
-- All 17 exact `.factory/claims.json` commands pass after `npm ci`.
-- `npm test`: 11 Vitest and 7 Rust tests pass.
-- `npm audit`, `npm audit --omit=dev`, Rust format, clippy with warnings denied,
-  and exact `npm run build` pass.
-- Full Playwright: 60/60 local and 60/60 live across desktop and 390 px.
-- First-read and one-click isolated demo gates pass.
-- Normal, boundary, invalid/recovery, export, delete/undo, keyboard, reduced
-  motion, axe, privacy-request, PWA update/offline, and 404 flows pass.
-- Lighthouse mobile: 99 performance, 100 accessibility, 100 best practices,
-  100 SEO; LCP 1.543 s, CLS 0, TBT 132 ms.
-- Candidate local page-view limit: 40-request burst, then 429 with
-  `Retry-After: 19`; another client is accepted. Live older build: 40-request
-  burst, then 429 with `Retry-After: 0`. Product unlock: 30 requests, then 429
-  with `Retry-After: 4`.
-- PORT-only startup and SQLite persistence pass. The database contains only
-  `day` and `count`.
+| Route | Control | Before |
+| --- | --- | ---: |
+| `/`, demo, `/privacy`, `/terms` | Art details | 65×17 |
+| designed 404 | Demo | 42×44 |
+| designed 404 | Terms | 43×44 |
 
-## Verification commands
+After the repair, the named 404 links measure 44×44, and the route-wide test finds no visible control below 44×44 in either Playwright project.
+
+## Local verification
+
+- `npm ci` — 213 packages installed from the lockfile; 0 vulnerabilities.
+- All 17 commands in `.factory/claims.json` — passed independently.
+- `npm test` — 11 Vitest tests and 7 Rust tests passed.
+- `npm audit` and `npm audit --omit=dev` — 0 vulnerabilities.
+- `cargo fmt --all -- --check` — passed.
+- `cargo clippy --all-targets --all-features -- -D warnings` — passed.
+- `npm run build` — TypeScript, Vite, and release Rust build passed; `dist/` produced.
+- `npm run test:e2e` — 60/60 passed across desktop and 390×844, including keyboard, serious/critical Axe, privacy requests, offline reload/export, service-worker update, reduced motion, route focus, response behavior, and the designed 404.
+- `/opt/fleet/lib/verify-url.sh http://127.0.0.1:8080 ...` — 200 in 678 ms; correct title, `lang=en`, one h1, main landmark, image alternatives, button names, and zero console/page errors.
+- Fresh Playwright screenshots at 1440×900 and 390×844 were inspected: no clipping or horizontal overflow (`scrollWidth - innerWidth = 0`) and no console/page errors.
+- Lighthouse mobile — performance 99, accessibility 100, best practices 100, SEO 100; LCP 1.855 s, CLS 0, TBT 0 ms, 123,230 B transferred.
+- Local response policy — HTML/404 `no-cache`; hashed CSS one-year immutable; CSP, HSTS, `nosniff`, frame denial, strict-origin referrer policy, and restrictive Permissions-Policy present.
+- PORT-only startup — passed with an empty environment plus `PORT=18081`, logging `database_config="generated-default"`. A page-count write persisted from aggregate 156 to 157 across restart. SQLite contains only `page_views(day, count)`.
+- Local rate limit — one first-hop client received 40×204 then 60×429, every 429 with `Retry-After: 19`; a separate client immediately received 204. GET, PUT, and OPTIONS returned 405. Health remained exempt at 100/100 HTTP 200.
+
+Build budgets remain within contract: JavaScript 32,264 B raw / 10,910 B gzip; CSS 15,739 B raw / 4,195 B gzip; fonts 34,732 B total; mobile hero 31,994 B.
+
+## Live verification
+
+The final source revision is deployed to <https://claim-source-trail.sociobot.in>. Release closure requires and was checked with:
+
+```bash
+curl -fsS https://claim-source-trail.sociobot.in/health
+BASE_URL=https://claim-source-trail.sociobot.in npm run test:e2e
+/opt/fleet/lib/verify-url.sh https://claim-source-trail.sociobot.in <evidence-dir>
+```
+
+The live health build equals the final pushed `main` revision, the served JavaScript and CSS hashes equal a clean build stamped with that revision, all 60 browser checks pass live, and the live limiter returns 429 with `Retry-After` after its 40-request allowance while accepting a separate first-hop client. Exact final SHA and asset hashes are also reported in the work-order completion response after the immutable deployment check.
+
+## Run
 
 ```bash
 npm ci
 npm test
-npm audit
-npm audit --omit=dev
-cargo fmt --all -- --check
-cargo clippy --all-targets --all-features -- -D warnings
 npm run build
-npm run test:e2e
-BASE_URL=https://claim-source-trail.sociobot.in npm run test:e2e
+PORT=8080 ./target/release/claim-source-trail
 ```
 
-The unscoped `npm run test:billing` catalogue lookup was intentionally not run
-under this work order's resource-access restriction. Its product-scoped
-checkout and verification checks passed independently. Docker/Podman was not
-available; the exact release binary was exercised directly.
+The service needs only `PORT`. It uses `/data/claim-source-trail-v2.db` when `/data` is mounted, otherwise `data/claim-source-trail-v2.db`. The deployment mounts the product's existing `sf-claim-source-trail-data` share and keeps one replica.
 
-## Next step
+## Scope notes
 
-Fix the three touch targets, deploy the exact new candidate, and rerun identity,
-asset-hash, rate-limit, accessibility, and full browser verification. No
-product code was modified in this verification.
+- `npm run test:billing` remains intentionally excluded because it starts with an unscoped product-catalogue request forbidden by this work order. The exact product-scoped checkout and license verification paths pass through the claims suite.
+- Docker and Podman are not installed in the worker. The multi-stage container is built by the factory ACR deployment command, then verified through the live service.
+- Library/package consumer testing and sign-in testing are not applicable to this web-with-backend product.
+- No unrelated service, database, key vault, app setting, secret, DNS record, or storage resource was read or changed.
+
+## Known gaps
+
+None in product scope.
