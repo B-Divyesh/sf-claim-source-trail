@@ -423,6 +423,10 @@ test('mobile demo anchor keeps the workspace heading below the banner', async ({
   expect(banner).not.toBeNull();
   expect(heading).not.toBeNull();
   expect(heading!.y).toBeGreaterThanOrEqual(banner!.y + banner!.height - 1);
+  expect(heading!.y + heading!.height).toBeLessThan(844);
+  const firstCard = await page.locator('.trail-card').first().boundingBox();
+  expect(firstCard).not.toBeNull();
+  expect(firstCard!.y).toBeLessThan(844);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 

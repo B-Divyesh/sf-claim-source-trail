@@ -12,6 +12,7 @@ import {
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const demoMode = new URLSearchParams(location.search).get('demo') === '1';
+document.documentElement.classList.toggle('demo-mode', demoMode);
 const storageScope: StorageScope = demoMode ? 'demo' : 'real';
 const PRODUCT_VERSION = '1.0.0';
 const BUILD_ID = import.meta.env.VITE_BUILD_SHA || 'dev';
@@ -336,6 +337,7 @@ function render(): void {
   else if (path === '/terms') { setMetadata('terms'); app.innerHTML = legalPage('terms'); }
   else { setMetadata(demoMode ? 'demo' : 'home'); app.innerHTML = homePage(); }
   bindGlobalEvents();
+  if (location.hash) requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector(location.hash)?.scrollIntoView()));
 }
 
 function focusRoute(): void {
@@ -353,7 +355,6 @@ function navigate(url: URL): void {
   history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
   render();
   focusRoute();
-  if (url.hash) document.querySelector(url.hash)?.scrollIntoView();
 }
 
 function isSpaRoute(url: URL): boolean {

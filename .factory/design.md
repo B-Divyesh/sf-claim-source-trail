@@ -36,6 +36,7 @@ Ink on paper is above 13:1; muted ink on paper is above 6:1; white on evidence b
 - The four required reasoning steps are numbered and remain in a fixed reading order: claim → source → exact location → why it supports the claim.
 - A saved card shows a plain-language completeness strip. Missing locator/reason fields remain visibly actionable; the product never labels a claim "true".
 - Editing happens in one focused sheet. Destructive deletion requires a dialog naming the claim; a brief undo action follows deletion.
+- Instructor import uses the same paper-sheet grammar: a file picker opens a local preview ledger, submission filenames become visible labels, and the completed import can be undone.
 - Keyboard: visible yellow/ink focus ring, Escape closes dialogs, Ctrl/Cmd+Enter saves the editor.
 
 ## Motion policy

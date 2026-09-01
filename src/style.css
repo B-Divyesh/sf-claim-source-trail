@@ -26,6 +26,7 @@
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 html { background: var(--paper); scroll-padding-top: 24px; }
+html.demo-mode { scroll-behavior: auto; }
 body { margin: 0; min-width: 320px; background: var(--paper); font-size: 17px; }
 button, input, textarea, select { font: inherit; color: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -229,6 +230,9 @@ footer p { max-width: 360px; margin: 0; text-align: right; }
   .how-it-works li, .how-it-works li:nth-child(2) { min-height: 0; border-right: 0; border-bottom: var(--rule); }
   .how-it-works li:last-child { border-bottom: 0; }
   .section-head { align-items: start; flex-direction: column; }
+  .demo-banner + main .workspace { padding-top: 16px; }
+  .demo-banner + main .workspace .section-head { align-items: end; flex-direction: row; margin-bottom: 20px; }
+  .demo-banner + main .workspace .section-head .button { flex: none; }
   .toolbar { grid-template-columns: 1fr; }
   .export-group { grid-column: auto; }
   .export-group .button { flex: 1; }
