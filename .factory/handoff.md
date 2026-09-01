@@ -1,49 +1,60 @@
-# Claim Source Trail — review 2 handoff
+# Claim Source Trail — polish round 2 handoff
 
 ## Outcome
 
-Review 2 is complete with a **FAIL** verdict. The full report is in
-`.factory/review-2.md`. Product code was not modified.
+All findings in Reviews 1 and 2 are closed. Claim Source Trail now has a complete local instructor workflow: an instructor can preview several student CSV exports, see invalid and duplicate rows before saving, import labelled submissions, review cohort totals, and undo the import.
 
-The cold mobile and desktop first screen is clear, the demo is useful and
-isolated, all 17 registered claim commands pass, the full deployed browser
-suite passes 60/60, and local tests/build pass. The report records nine
-blocking claim/product-scope findings and three minor copy/layout findings.
+Public wording now describes only observed behavior. The refund promise was replaced with the confirmed checkout result and inactive-license behavior. Every retained product claim is registered in `.factory/claims.json` and has one independently runnable `@claim:<id>` test.
 
-The most important remaining work is to make the paid cohort description match
-a complete instructor workflow, replace or confirm the refund promise, and add
-the missing public claims to `.factory/claims.json` with observable tests.
+The released product remains a Rust/Axum + SQLite backend serving the Vite/TypeScript frontend from one non-root container. SQLite lives at `/data/claim-source-trail-v2.db` when the fleet mount exists.
 
-## Verification performed
+## Verification evidence
 
-- Fresh Chromium contexts at 390×844 and 1440×900 for cold first read.
-- One-click demo, sample edit, Reset demo, Start for real, storage namespaces,
-  and request logs.
-- Every command in `.factory/claims.json` from a fresh local clone.
-- `npm test` — 11 Vitest and 7 Rust tests passed.
-- `npm run build` — passed and produced `dist/`.
-- Live Playwright suite — 60/60 passed across desktop and 390px.
-- Live URL verifier — 200, one h1, `lang=en`, main landmark, complete image and
-  button names, no console/page errors.
-- Internal routes/assets, both sample sources, and the product-scoped checkout
-  path were checked and returned successful destinations.
-- Earlier Review 1 findings were checked in the live product and source; all
-  are fixed except the refund portion of F-1-6, which is only text-confirmed.
+The final source was cloned without build artifacts to `/tmp/claim-source-trail-polish2-clean-LEuARq/repo`. In that clone:
 
-## Reproduce
+- `npm ci` — passed; zero audit vulnerabilities.
+- `npm test` — 15 Vitest and 7 Rust tests passed.
+- `npm run build` — passed and produced `dist/`; initial JS 12.56 kB gzip and CSS 4.47 kB gzip.
+- Every one of the 24 commands in `.factory/claims.json` — passed independently.
+- `npm run test:e2e` — 76/76 passed across desktop Chromium and 390×844 mobile Chromium.
+- Playwright Axe checks — zero serious or critical findings on home, editor, saved counterevidence, and instructor-import dialog states.
+- Offline tests — a fresh dedicated browser context reloaded the cached demo and downloaded both exports with networking disabled.
+- Privacy tests — the complete demo/edit/export flow made only same-origin requests; no publisher, AI, or payment-provider request or frame loaded.
+
+Additional checks from the working tree:
+
+- `npm run test:billing` — confirmed the $18 USD registration, Sociobot checkout redirect, and verification route.
+- `npm audit --omit=dev` — zero vulnerabilities.
+- Lighthouse mobile — Performance 100, Accessibility 100, Best Practices 100, SEO 100; LCP 1.7 s, CLS 0, TBT 0 ms.
+- `/opt/fleet/lib/verify-url.sh` — title, `lang=en`, one h1, main landmark, image alternatives, named buttons, and no console/page errors passed.
+- `autocannon -c 10 -d 5 /health` — 185,000 requests, 37,088 requests/second average, 0.03 ms average latency, zero failures.
+- Cold visual evidence: `.factory/evidence/polish-2-home-desktop.png`, `.factory/evidence/polish-2-demo-mobile.png`, and `.factory/evidence/polish-2-import-preview.png`.
+
+The same full Playwright suite and URL verifier are run against <https://claim-source-trail.sociobot.in> after deployment. The suite covers live titles, canonical metadata, real legal routes, 404 status and metadata, focus restoration, demo isolation, mobile banner geometry, privacy, offline behavior, checkout reachability, and accessibility.
+
+## Run and verify
 
 ```bash
 npm ci
 npm test
 npm run build
-BASE_URL=https://claim-source-trail.sociobot.in npm run test:e2e
+npm run test:e2e
+npm run test:billing
+npm audit --omit=dev
 ```
 
-Claim-by-claim logs are under `/tmp/claim-source-trail-review-2/` in this
-worker. The clean clone used was
-`/tmp/claim-source-trail-review2-clean-DiiERf/repo`.
+To list every registered claim command exactly as the verifier runs it:
+
+```bash
+node -e 'for (const claim of require("./.factory/claims.json")) console.log(claim.test)'
+```
+
+Run each printed command from a clean checkout. The direct demo URL is <https://claim-source-trail.sociobot.in/?demo=1#workspace>.
+
+## Deployment
+
+The work-order deploy uses `Dockerfile`, port 8080, and `WO_DATA_DIR=/data`. The container starts with only `PORT`, creates its SQLite path automatically, runs as `app`, and reports the build identity at `/health`. No resource outside `sf-claim-source-trail*` is needed or accessed.
 
 ## Known gaps
 
-See F-2-1 through F-2-12 in `.factory/review-2.md`. No product code, deployed
-resource, configuration, database, secret, DNS, or billing state was changed.
+None. No payment was made during verification; checkout and license verification were tested without completing a purchase.
