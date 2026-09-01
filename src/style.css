@@ -46,7 +46,7 @@ a:hover { text-decoration-thickness: 3px; }
 nav { display: flex; gap: 24px; align-items: center; }
 nav a { color: var(--ink); font-weight: 700; text-decoration: none; }
 nav a:hover, nav a[aria-current] { text-decoration: underline; text-decoration-color: var(--yellow); text-decoration-thickness: 5px; }
-.wordmark, nav a, .trail-steps a, .microcopy a, .license-notice a, .text-link {
+.wordmark, nav a, footer a, .trail-steps a, .microcopy a, .license-notice a, .text-link {
   min-width: 44px;
   min-height: 44px;
   display: inline-flex;

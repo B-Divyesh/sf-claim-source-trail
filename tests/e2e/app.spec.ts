@@ -229,15 +229,27 @@ test('the shipped counterevidence sample has a valid, documented source URL with
   expect(new URL(href!).protocol).toBe('https:');
 });
 
-test('persistent navigation and legal links have 44px touch targets', async ({ page }) => {
-  const selectors = ['.wordmark', '.site-header nav a', '.purchase-box .microcopy a', 'footer nav a'];
-  for (const selector of selectors) {
-    const sizes = await page.locator(selector).evaluateAll((links) => links.map((link) => {
-      const rect = link.getBoundingClientRect();
-      return { width: rect.width, height: rect.height };
-    }).filter(({ width, height }) => width > 0 && height > 0));
-    expect(sizes.length).toBeGreaterThan(0);
-    expect(sizes.every(({ width, height }) => width >= 44 && height >= 44)).toBe(true);
+test('every visible control on every public route has a 44px touch target', async ({ page }) => {
+  for (const path of ['/', '/?demo=1#workspace', '/privacy', '/terms', '/definitely-not-a-route']) {
+    await page.goto(path);
+    const targets = await page.locator('a, button, input, select, textarea').evaluateAll((controls) => controls
+      .map((control) => {
+        const rect = control.getBoundingClientRect();
+        const style = getComputedStyle(control);
+        return {
+          name: (control.textContent || control.getAttribute('aria-label') || control.getAttribute('name') || control.tagName).trim(),
+          visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0,
+          width: rect.width,
+          height: rect.height
+        };
+      })
+      .filter(({ visible }) => visible));
+
+    expect(targets.length, `${path} should expose interactive controls`).toBeGreaterThan(0);
+    for (const target of targets) {
+      expect(target.width, `${path} ${target.name} width`).toBeGreaterThanOrEqual(44);
+      expect(target.height, `${path} ${target.name} height`).toBeGreaterThanOrEqual(44);
+    }
   }
 });
 
