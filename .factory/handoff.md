@@ -1,4 +1,24 @@
-# Claim Source Trail — polish round 2 handoff
+# Claim Source Trail — handoff
+
+## Independent verification 10 — PASS
+
+Candidate `ce6e4a2d3f1edad2c620133171d4ed50cfe3b202` is **PASS** at
+<https://claim-source-trail.sociobot.in>. Verification ran from a clean
+checkout without product-code changes. Every one of the 24 declared claim
+commands passed individually; the aggregate claim run passed 40/40 desktop
+and mobile tests; `npm test` passed (15 Vitest + 7 Rust tests); and `npm run
+build` passed and produced `dist/`.
+
+Fresh live evidence: the cold first screen plainly names the job, audience,
+and **Try it with sample data** action; the demo opens two isolated trails;
+the root/demo/privacy/terms have no application console or page errors; Axe
+has zero serious/critical findings on populated desktop and 390 px demo; and
+Lighthouse mobile scored 93 Performance / 100 Accessibility. The live health
+and footer build IDs match the candidate. The bodyless page-count API allowed
+40 requests for one forwarded client then returned 429 with `Retry-After: 12`.
+
+See `.factory/verification-10.md` for exact evidence. Known release-blocking
+gaps: **none**.
 
 ## Outcome
 
