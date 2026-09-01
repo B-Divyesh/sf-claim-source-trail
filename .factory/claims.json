@@ -70,11 +70,11 @@
     "sandbox": "open the home page and assert the advertised checkout endpoint responds with a 303 redirect to checkout.dodopayments.com without following it"
   },
   {
-    "id": "refund-policy",
-    "claim": "The purchase terms name Sociobot/Dodo as merchant of record and say a refund revokes the license.",
-    "where": "Instructor kit panel, terms, README",
-    "test": "npm run test:e2e -- --grep @claim:refund-policy",
-    "sandbox": "open /terms in a fresh browser context and assert the merchant and refund terms are visible"
+    "id": "inactive-license-lock",
+    "claim": "If Sociobot verification changes a valid license to inactive, the Instructor kit locks.",
+    "where": "terms",
+    "test": "npx vitest run src/license.test.ts -t @claim:inactive-license-lock",
+    "sandbox": "mock a valid Sociobot verdict followed by an inactive verdict; assert the cached kit state changes from unlocked to locked"
   },
   {
     "id": "hero-art-provenance",
@@ -92,14 +92,21 @@
   },
   {
     "id": "instructor-tools",
-    "claim": "An active Instructor kit adds a local cohort pulse, course labels in Markdown, and 7/30/90-day retention choices.",
+    "claim": "An active Instructor kit adds course labels to Markdown and offers 7/30/90-day local deletion choices.",
     "where": "Instructor kit panel, terms, README",
     "test": "npm run test:e2e -- --grep @claim:instructor-tools",
-    "sandbox": "seed a current cached license verdict plus old/recent local trails; assert cohort counts, automatic deletion, every retention choice, and a labeled Markdown export"
+    "sandbox": "seed a current cached license verdict plus old/recent local trails; assert automatic deletion, every retention choice, and a labeled Markdown export"
+  },
+  {
+    "id": "instructor-import",
+    "claim": "An active Instructor kit previews and imports student CSV exports locally, labels each submission, skips duplicates, shows totals, and supports undo.",
+    "where": "Instructor kit panel, terms, README",
+    "test": "npm run test:e2e -- --grep @claim:instructor-import",
+    "sandbox": "fresh browser with cached valid license; upload two CSV files with one duplicate, inspect preview, import, assert labels and totals, then undo"
   },
   {
     "id": "anonymous-page-count",
-    "claim": "A visit sends one bodyless page-count request; claim and source content is not sent to the backend, which stores only a date and count.",
+    "claim": "When the daily count is due, a visit sends one bodyless request; the backend receives no claim content and stores only a date and count.",
     "where": "privacy page, README",
     "test": "npm run test:e2e -- --grep @claim:anonymous-page-count && cargo test claim_anonymous_page_count_stores_only_day_and_count",
     "sandbox": "record requests while creating a private trail; assert the sole POST is same-origin and bodyless, then assert the SQLite page_views table has only day and count columns"
@@ -117,5 +124,47 @@
     "where": "privacy page, README",
     "test": "npx vitest run src/license.test.ts -t @claim:license-verification",
     "sandbox": "mock the Sociobot response, assert the exact product-scoped URL, then verify a second check uses the cached daily verdict without another request"
+  },
+  {
+    "id": "daily-page-count",
+    "claim": "The anonymous page count is sent at most once per browser day.",
+    "where": "privacy page, README",
+    "test": "npm run test:e2e -- --grep @claim:daily-page-count",
+    "sandbox": "fresh browser; reload twice on one stored date and assert one POST, then set the marker to an earlier date and assert one new POST"
+  },
+  {
+    "id": "page-count-rate-limit",
+    "claim": "The page-count route limits each first X-Forwarded-For client separately and returns 429 with Retry-After after a 40-request burst.",
+    "where": "README",
+    "test": "cargo test claim_page_count_rate_limit_uses_first_forwarded_ip_and_returns_retry_after",
+    "sandbox": "in-memory SQLite router; send 41 requests for one forwarded IP and one request for a second IP; assert 429, Retry-After, and client separation"
+  },
+  {
+    "id": "container-runtime",
+    "claim": "The release container uses a non-root app user and serves the app and health route on port 8080.",
+    "where": "README",
+    "test": "npx vitest run src/container.test.ts -t @claim:container-runtime",
+    "sandbox": "inspect the release Docker stage and server router for USER app, EXPOSE 8080, entrypoint, root route, and health route; deployed identity is checked in handoff"
+  },
+  {
+    "id": "no-embedded-payment-provider",
+    "claim": "The product loads no payment-provider script or frame before checkout is opened.",
+    "where": "README",
+    "test": "npm run test:e2e -- --grep @claim:no-embedded-payment-provider",
+    "sandbox": "fresh browser; record home requests and frames before purchase; assert one top frame and no payment-provider origin"
+  },
+  {
+    "id": "publisher-content-local",
+    "claim": "Creating, viewing, searching, and exporting a trail does not fetch publisher pages; exports contain only stored source details and excerpts.",
+    "where": "privacy page",
+    "test": "npm run test:e2e -- --grep @claim:publisher-content-local",
+    "sandbox": "demo workspace; record requests through search and CSV export, assert no publisher host request, a source link remains available, and stored excerpt is exported"
+  },
+  {
+    "id": "manual-reasoning",
+    "claim": "The app records what the student enters and does not generate essays or score a claim as true.",
+    "where": "terms, README",
+    "test": "npm run test:e2e -- --grep @claim:manual-reasoning",
+    "sandbox": "fresh browser; assert fields start blank, no generation or truth-scoring action exists, and saved output matches the student's input"
   }
 ]

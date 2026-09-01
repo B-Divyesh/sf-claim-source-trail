@@ -1,1 +1,1 @@
-Connect each claim to its source, exact location, and supporting reason.
+Connect each claim to its source, exact location, and why the evidence matters.

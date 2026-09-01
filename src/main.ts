@@ -1,6 +1,7 @@
 import './style.css';
 import {
-  createTrail, readyRate, statusLabel, toCsv, toMarkdown, trailStatus, type Trail, type TrailStatus
+  createTrail, previewTrailImports, readyRate, statusLabel, toCsv, toMarkdown, trailStatus,
+  type ImportPreview, type Trail, type TrailStatus
 } from './model';
 import {
   applyRetention, clearLocalData, loadSettings, loadTrails, saveSettings, saveTrails, type Settings, type StorageScope
@@ -22,6 +23,7 @@ let editingId: string | null = null;
 let deletedTrail: Trail | null = null;
 let undoTimer = 0;
 let previousFocus: HTMLElement | null = null;
+let pendingImport: ImportPreview | null = null;
 
 try {
   trails = loadTrails(storageScope);
@@ -61,7 +63,7 @@ function shell(content: string, page: 'home' | 'privacy' | 'terms'): string {
     </header>
     ${content}
     <footer>
-      <div><strong>Claim Source Trail</strong><br><span>Reasoning practice, not truth verification.</span></div>
+      <div><strong>Claim Source Trail</strong><br><span>Records evidence links; does not judge truth.</span></div>
       <nav aria-label="Footer navigation"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>
       <p>Built by Param Factory · Version ${PRODUCT_VERSION} · Build ${esc(BUILD_ID)}<br>Original generated hero art. <a href="/terms">Art details</a></p>
     </footer>`;
@@ -74,7 +76,7 @@ function setMetadata(page: 'home' | 'demo' | 'privacy' | 'terms'): void {
   const metadata = {
     home: {
       title: 'Claim Source Trail — connect claims to evidence',
-      description: 'Build inspectable trails from claims to exact source locations and reasoning.',
+      description: 'Record each claim, its source, exact location, and why the evidence matters.',
       url: `${SITE_ORIGIN}/`
     },
     demo: {
@@ -111,24 +113,28 @@ function legalPage(kind: 'privacy' | 'terms'): string {
   const isPrivacy = kind === 'privacy';
   const content = isPrivacy ? `
     <p class="kicker">Plain-language policy</p>
-    <h1>Privacy, by design</h1>
+    <h1>How your data stays private</h1>
     <p class="legal-lead">Your claims, sources, excerpts, and notes stay in this browser. We cannot read them.</p>
     <h2>What is stored</h2>
-    <p>Your trail cards and Instructor kit settings use local browser storage. A pasted license token is also stored locally and sent only to Sociobot’s billing API to check whether the unlock is active.</p>
+    <p>Your trail cards, imported submission labels, and Instructor kit settings use this browser’s storage. A pasted license token is stored here too.</p>
+    <p>The token goes only to Sociobot’s billing API when the app checks whether the kit is active.</p>
     <h2>What reaches our server</h2>
-    <p>On a visit, the app sends one anonymous page-count event. The server stores only a date and a total count—no IP address, user agent, source text, or persistent visitor identifier. Normal short-lived infrastructure logs may exist for security and reliability.</p>
+    <p>At most once per browser day, the app sends one anonymous page-count event. The server stores only a date and total count.</p>
+    <p>The event has no IP address, user agent, source text, or persistent visitor identifier. Normal short-lived infrastructure logs may exist for security.</p>
     <h2>Delete your data</h2>
-    <p>Use “Delete all local data” in the workspace. You can also clear this site’s storage in your browser. Either action is immediate and cannot be undone.</p>
+    <p>Use “Delete all local data” in the workspace. You can also clear this site’s storage in your browser. The in-app deletion is immediate and cannot be undone.</p>
     <h2>Publisher material</h2>
     <p>Record only the excerpts you are permitted to use. This tool does not fetch, scrape, or redistribute publisher content.</p>
   ` : `
-    <p class="kicker">Fair-use terms</p>
+    <p class="kicker">Product terms</p>
     <h1>Terms of use</h1>
-    <p class="legal-lead">Use Claim Source Trail to practice evidence reasoning—not to outsource judgment.</p>
+    <p class="legal-lead">Use Claim Source Trail to connect your own claims and sources.</p>
     <h2>The service</h2>
-    <p>The free workspace stores claim trails locally and includes Markdown and CSV export. It does not verify whether a claim is true, guarantee citation accuracy, or replace your instructor’s requirements.</p>
+    <p>The free workspace stores claim trails locally and includes Markdown and CSV export. Enter and check your own work.</p>
+    <p>The app records what you enter. It does not generate essays, score truth, or check citation accuracy.</p>
     <h2>Instructor kit purchase</h2>
-    <p>The Instructor kit costs $18 as a one-time purchase and unlocks the classroom overview, course label, and automatic local retention settings for the current product. Sociobot/Dodo is the merchant of record and handles checkout and refunds. A refund revokes the license.</p>
+    <p>The Instructor kit costs $18 once. It adds local CSV import, submission totals, a course label, and automatic deletion settings.</p>
+    <p>Checkout opens Sociobot/Dodo. Review its terms before paying. If license verification reports an inactive license, the Instructor kit locks.</p>
     <h2>Your responsibilities</h2>
     <p>You are responsible for checking sources, respecting copyright and access terms, protecting exported files, and following your institution’s academic-integrity policies.</p>
     <h2>Availability</h2>
@@ -150,18 +156,19 @@ function trailCard(trail: Trail): string {
   return `<article class="trail-card" data-id="${trail.id}">
     <div class="card-topline">
       <span class="status ${statusClass(status)}"><span aria-hidden="true">${status === 'ready' ? '✓' : '!'}</span> ${statusLabel(status)}</span>
-      <span class="stance ${trail.counterevidence ? 'counter' : ''}">${trail.counterevidence ? '↯ Counterevidence' : '→ Supporting evidence'}</span>
+      <span class="stance ${trail.counterevidence ? 'counter' : ''}">${trail.counterevidence ? '↯ Source challenges claim' : '→ Source supports claim'}</span>
     </div>
     <h3>${esc(trail.claim)}</h3>
+    ${trail.importedFrom ? `<p class="import-source"><strong>Submission:</strong> ${esc(trail.importedFrom)}</p>` : ''}
     <dl class="trail-steps">
       <div><dt><span>2</span> Source</dt><dd>${esc(source || trail.sourceRef)}</dd>${sourceLink ? `<dd><a href="${esc(sourceLink)}" target="_blank" rel="noopener noreferrer">${esc(trail.sourceRef)}</a></dd>` : ''}</div>
       <div><dt><span>3</span> Exact location</dt><dd>${esc(trail.locator) || '<em>Not recorded yet</em>'}</dd></div>
       <div><dt><span>3b</span> Excerpt / paraphrase</dt><dd>${esc(trail.evidence) || '<em>Not recorded yet</em>'}</dd></div>
-      <div><dt><span>4</span> Why it supports the claim</dt><dd>${esc(trail.reason) || '<em>Not recorded yet</em>'}</dd></div>
+      <div><dt><span>4</span> Why it matters</dt><dd>${esc(trail.reason) || '<em>Not recorded yet</em>'}</dd></div>
     </dl>
     <div class="card-actions">
       <button class="button small edit-trail" type="button" data-id="${trail.id}">Edit trail</button>
-      <button class="text-button delete-trail" type="button" data-id="${trail.id}">Delete</button>
+      <button class="text-button delete-trail" type="button" data-id="${trail.id}">Delete trail</button>
       <time datetime="${trail.updatedAt}">Updated ${new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(new Date(trail.updatedAt))}</time>
     </div>
   </article>`;
@@ -183,7 +190,7 @@ function emptyState(): string {
   return `<section class="empty-state" aria-labelledby="empty-title">
     <div class="empty-numeral" aria-hidden="true">01</div>
     <div><h3 id="empty-title">Start with one arguable claim</h3>
-    <p>Attach the exact place in a source—not only the source itself—then explain the connection in your own words.</p>
+    <p>Add the exact location in a source. Then explain the connection in your own words.</p>
     <div class="button-row"><button class="button primary add-trail" type="button">Add your first claim</button><button class="text-button example-trail" type="button">Open a worked example</button></div></div>
   </section>`;
 }
@@ -212,14 +219,17 @@ function demoBanner(): string {
 
 function paidPanel(): string {
   if (license.unlocked) {
+    const submissions = new Set(trails.map((trail) => trail.importedFrom).filter(Boolean)).size;
     return `<section id="instructor" class="instructor unlocked" aria-labelledby="instructor-title">
-      <div><p class="eyebrow">Instructor kit · unlocked</p><h2 id="instructor-title">Make the trail visible at cohort scale</h2>
-      <p>This overview is calculated on this device. No student work is uploaded.</p></div>
+      <div><p class="eyebrow">Instructor kit · active</p><h2 id="instructor-title">Review imported student submissions</h2>
+      <p>Import CSV exports from students. Previewed files stay on this device.</p></div>
       <div class="pulse-grid" aria-label="Local trail overview">
         <div><strong>${trails.length}</strong><span>Total trails</span></div>
-        <div><strong>${readyRate(trails)}%</strong><span>Ready to spot-check</span></div>
-        <div><strong>${trails.filter((trail) => trail.counterevidence).length}</strong><span>Counterevidence</span></div>
+        <div><strong>${submissions}</strong><span>Imported submissions</span></div>
+        <div><strong>${readyRate(trails)}%</strong><span>Ready to review</span></div>
+        <div><strong>${trails.filter((trail) => trail.counterevidence).length}</strong><span>Sources that challenge claims</span></div>
       </div>
+      <div class="import-control"><div><h3>Import student CSV files</h3><p>Choose one or more CSV files exported from Claim Source Trail. Duplicates are skipped.</p></div><button class="button primary open-import" type="button">Preview CSV files</button></div>
       <div class="kit-controls">
         <label>Course or assignment label<input id="course-label" value="${esc(settings.courseLabel)}" maxlength="80"></label>
         <label>Automatic local deletion<select id="retention-days">
@@ -231,16 +241,16 @@ function paidPanel(): string {
   }
   return `<section id="instructor" class="instructor" aria-labelledby="instructor-title">
     <div><p class="eyebrow">Optional one-time unlock</p><h2 id="instructor-title">Instructor kit — $18 once</h2>
-    <p>Unlock a local cohort pulse, course labels on Markdown exports, and automatic 7/30/90-day retention. The complete student workspace and both exports remain free.</p></div>
+    <p>Import student CSV files, see local totals, label Markdown exports, and set 7/30/90-day deletion. Both student exports remain free.</p></div>
     <div class="purchase-box">
       <a class="button primary" href="${checkoutUrl()}">Buy Instructor kit</a>
-      <button class="text-button show-restore" type="button">Have a license? Restore it</button>
+      <button class="text-button show-restore" type="button">Restore Instructor kit</button>
       <form id="restore-form" class="restore-form" hidden>
         <label for="license-token">License token</label>
         <div><input id="license-token" name="license" autocomplete="off" required><button class="button" type="submit">Verify license</button></div>
       </form>
       ${license.notice ? `<p class="license-notice" role="status">${esc(license.notice)} <a href="${checkoutUrl()}">View purchase</a></p>` : ''}
-      <p class="microcopy">One-time purchase. Checkout and refunds are handled by Sociobot/Dodo. See <a href="/terms">terms</a>.</p>
+      <p class="microcopy">One-time purchase. Checkout opens Sociobot/Dodo. Read <a href="/terms">purchase terms</a>.</p>
     </div>
   </section>`;
 }
@@ -249,7 +259,7 @@ function editorDialog(): string {
   return `<dialog id="trail-dialog" aria-labelledby="dialog-title">
     <form id="trail-form" method="dialog" novalidate>
       <div class="dialog-head"><div><p class="eyebrow">Evidence builder</p><h2 id="dialog-title">Add a claim trail</h2></div><button class="icon-button close-dialog" type="button" aria-label="Close editor">×</button></div>
-      <p class="form-guide">Fields marked “required” must be present to save. Locator, excerpt, and reasoning can begin as a draft, but the trail will show what is missing.</p>
+      <p class="form-guide">Fields marked “required” must be present to save. Location, excerpt, and explanation can start blank.</p>
       <div id="form-errors" class="form-errors" role="alert" tabindex="-1" hidden></div>
       <fieldset><legend><span>1</span> State the claim</legend>
         <label for="claim">Arguable claim <small>Required</small></label>
@@ -263,16 +273,28 @@ function editorDialog(): string {
         <p class="hint" id="source-ref-hint">Optional. Enter a full http(s) URL or a DOI beginning with 10.</p>
       </fieldset>
       <fieldset><legend><span>3</span> Pinpoint the evidence</legend>
-        <label for="locator">Exact locator<input id="locator" name="locator" maxlength="180" placeholder="p. 42, para. 3 · section ‘Methods’"></label>
+        <label for="locator">Exact location<input id="locator" name="locator" maxlength="180" placeholder="p. 42, para. 3 · section ‘Methods’"></label>
         <label for="evidence">Short excerpt or close paraphrase<textarea id="evidence" name="evidence" rows="3" maxlength="1200"></textarea></label>
         <p class="hint">Keep quotations short and respect the source’s access and copyright terms.</p>
       </fieldset>
       <fieldset><legend><span>4</span> Explain the link</legend>
         <label for="reason">Why does this evidence support or complicate the claim?<textarea id="reason" name="reason" rows="4" maxlength="1200"></textarea></label>
-        <label class="check-label"><input id="counterevidence" name="counterevidence" type="checkbox"><span><strong>Mark as counterevidence</strong><small>This source complicates or challenges the claim.</small></span></label>
+        <label class="check-label"><input id="counterevidence" name="counterevidence" type="checkbox"><span><strong>Mark as a source that challenges this claim</strong><small>Use this when the source complicates or challenges the claim.</small></span></label>
       </fieldset>
-      <div class="dialog-actions"><button class="text-button close-dialog" type="button">Cancel</button><button class="button primary" type="submit">Save trail</button></div>
+      <div class="dialog-actions"><button class="text-button close-dialog" type="button">Cancel editing</button><button class="button primary" type="submit">Save trail</button></div>
     </form>
+  </dialog>`;
+}
+
+function importDialog(): string {
+  return `<dialog id="import-dialog" aria-labelledby="import-title">
+    <div class="import-sheet">
+      <div class="dialog-head"><div><p class="eyebrow">Instructor kit</p><h2 id="import-title">Import student CSV files</h2></div><button class="icon-button close-import" type="button" aria-label="Close import">×</button></div>
+      <p id="import-help">Select files students exported with “Export CSV.” Files are read only in this browser.</p>
+      <label class="file-picker" for="submission-files">Student CSV files<input id="submission-files" type="file" accept=".csv,text/csv" multiple aria-describedby="import-help"></label>
+      <div id="import-preview" class="import-preview" role="status" aria-live="polite"><p>No files selected.</p></div>
+      <div class="dialog-actions"><button class="text-button close-import" type="button">Cancel import</button><button class="button primary confirm-import" type="button" disabled>Import new trails</button></div>
+    </div>
   </dialog>`;
 }
 
@@ -286,26 +308,26 @@ function deleteDialog(): string {
 function homePage(): string {
   return shell(`${demoBanner()}<main id="main">
     <section class="hero">
-      <div class="hero-copy"><p class="kicker">Claim → source → location → reasoning</p><h1>Connect each claim to its source.</h1>
+      <div class="hero-copy"><p class="kicker">Claim → source → location → why it matters</p><h1>Connect each claim to its source.</h1>
       <p class="lead">Undergraduate humanities and social-science students show where evidence supports each claim.</p>
       <div class="button-row"><a class="button primary" href="/?demo=1#workspace">Try it with sample data</a><button class="button add-trail" type="button">Build a claim trail</button><a class="button ghost" href="#how-it-works">See the four steps</a></div>
       <p class="action-note">Opens two sample trails. Your real workspace stays unchanged.</p>
-      <p class="privacy-note"><span aria-hidden="true">●</span> Local-first · no account · free Markdown & CSV export</p></div>
-      <figure class="hero-art"><picture><source media="(max-width: 640px)" srcset="/assets/hero-trail-640.webp"><img src="/assets/hero-trail.webp" width="960" height="640" alt="A blank index card connected by a blue paper trail to an open research book and evidence note" fetchpriority="high" decoding="async"></picture><figcaption>Each trail records a claim, source, location, and reason.</figcaption></figure>
+      <ul class="fact-list"><li>Claims stay in this browser.</li><li>Works offline after the first visit.</li><li>Markdown and CSV exports are free.</li></ul></div>
+      <figure class="hero-art"><picture><source media="(max-width: 640px)" srcset="/assets/hero-trail-640.webp"><img src="/assets/hero-trail.webp" width="960" height="640" alt="A blank index card connected by a blue paper trail to an open research book and evidence note" fetchpriority="high" decoding="async"></picture><figcaption>Each trail records a claim, source, exact location, and why it matters.</figcaption></figure>
     </section>
-    <section id="how-it-works" class="how-it-works" aria-labelledby="how-title"><p class="eyebrow">The reasoning chain</p><h2 id="how-title">The four parts of a claim trail</h2><ol>
-      <li><span>1</span><strong>Claim</strong><p>Write one idea that needs evidence.</p></li><li><span>2</span><strong>Source</strong><p>Name where the evidence comes from.</p></li><li><span>3</span><strong>Exact place</strong><p>Record the page, section, or paragraph.</p></li><li><span>4</span><strong>Reason</strong><p>Explain the connection in your words.</p></li>
+    <section id="how-it-works" class="how-it-works" aria-labelledby="how-title"><p class="eyebrow">How it works</p><h2 id="how-title">The four parts of a claim trail</h2><ol>
+      <li><span>1</span><strong>Claim</strong><p>Write one idea that needs evidence.</p></li><li><span>2</span><strong>Source</strong><p>Name where the evidence comes from.</p></li><li><span>3</span><strong>Exact location</strong><p>Record the page, section, or paragraph.</p></li><li><span>4</span><strong>Why it matters</strong><p>Explain the connection in your words.</p></li>
     </ol></section>
     <section id="workspace" class="workspace" aria-labelledby="workspace-title">
-      <div class="section-head"><div><p class="eyebrow">Private workspace</p><h2 id="workspace-title">Your claim trails</h2><p id="trail-summary">${trails.length ? `${trails.length} ${trails.length === 1 ? 'trail' : 'trails'} · ${readyRate(trails)}% ready to spot-check` : 'No claim trail is stored until you save it.'}</p></div><button class="button primary add-trail" type="button">+ Add claim</button></div>
+      <div class="section-head"><div><p class="eyebrow">Private workspace</p><h2 id="workspace-title">Your claim trails</h2><p id="trail-summary">${trails.length ? `${trails.length} ${trails.length === 1 ? 'trail' : 'trails'} · ${readyRate(trails)}% ready to review` : 'No claim trail is stored until you save it.'}</p></div><button class="button primary add-trail" type="button">+ Add claim</button></div>
       ${storageError ? `<div class="error-banner" role="alert"><strong>Local data error.</strong> ${esc(storageError)}<button class="text-button delete-all" type="button">Delete all local data</button></div>` : ''}
-      <div class="toolbar" ${trails.length ? '' : 'hidden'}><label for="search-trails">Search trails<input id="search-trails" type="search" placeholder="Search claims or sources"></label><label for="filter-trails">Show<select id="filter-trails"><option value="all">All trails</option><option value="ready">Ready to spot-check</option><option value="needs-locator">Missing locator</option><option value="counter">Counterevidence</option></select></label><div class="export-group"><button class="button export-md" type="button">Export Markdown</button><button class="button export-csv" type="button">Export CSV</button></div></div>
+      <div class="toolbar" ${trails.length ? '' : 'hidden'}><label for="search-trails">Filter trails by text<input id="search-trails" type="search" placeholder="Search claims or sources"></label><label for="filter-trails">Filter trails by status<select id="filter-trails"><option value="all">All trails</option><option value="ready">Ready to review</option><option value="needs-locator">Missing exact location</option><option value="counter">Sources that challenge claims</option></select></label><div class="export-group"><button class="button export-md" type="button">Export Markdown</button><button class="button export-csv" type="button">Export CSV</button></div></div>
       <div id="filter-note" class="filter-note" role="status"></div>
       <div id="trail-list" class="trail-list">${trails.length ? trails.map(trailCard).join('') : emptyState()}</div>
       ${trails.length && !storageError ? '<button class="text-button delete-all" type="button">Delete all local data</button>' : ''}
     </section>
     ${paidPanel()}
-  </main>${editorDialog()}${deleteDialog()}<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>`, 'home');
+  </main>${editorDialog()}${deleteDialog()}${importDialog()}<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>`, 'home');
 }
 
 function render(): void {
@@ -385,6 +407,10 @@ function bindGlobalEvents(): void {
   document.querySelector<HTMLFormElement>('#restore-form')?.addEventListener('submit', handleRestore);
   document.querySelector<HTMLInputElement>('#course-label')?.addEventListener('change', saveKitSettings);
   document.querySelector<HTMLSelectElement>('#retention-days')?.addEventListener('change', saveKitSettings);
+  document.querySelector('.open-import')?.addEventListener('click', openImport);
+  document.querySelectorAll<HTMLButtonElement>('.close-import').forEach((button) => button.addEventListener('click', closeImport));
+  document.querySelector<HTMLInputElement>('#submission-files')?.addEventListener('change', previewImports);
+  document.querySelector<HTMLButtonElement>('.confirm-import')?.addEventListener('click', confirmImport);
 }
 
 function openEditor(prefill?: Partial<Trail>): void {
@@ -405,6 +431,57 @@ function openEditor(prefill?: Partial<Trail>): void {
 function closeEditor(): void {
   document.querySelector<HTMLDialogElement>('#trail-dialog')?.close();
   previousFocus?.focus();
+}
+
+function openImport(): void {
+  const dialog = document.querySelector<HTMLDialogElement>('#import-dialog');
+  if (!dialog) return;
+  previousFocus = document.activeElement as HTMLElement;
+  pendingImport = null;
+  dialog.showModal();
+  document.querySelector<HTMLInputElement>('#submission-files')?.focus();
+}
+
+function closeImport(): void {
+  document.querySelector<HTMLDialogElement>('#import-dialog')?.close();
+  pendingImport = null;
+  previousFocus?.focus();
+}
+
+async function previewImports(): Promise<void> {
+  const input = document.querySelector<HTMLInputElement>('#submission-files');
+  const preview = document.querySelector<HTMLElement>('#import-preview');
+  const confirmButton = document.querySelector<HTMLButtonElement>('.confirm-import');
+  if (!input || !preview || !confirmButton) return;
+  const files = Array.from(input.files || []);
+  if (!files.length) { pendingImport = null; preview.innerHTML = '<p>No files selected.</p>'; confirmButton.disabled = true; return; }
+  try {
+    pendingImport = previewTrailImports(await Promise.all(files.map(async (file) => ({ name: file.name, text: await file.text() }))), trails);
+    const details = pendingImport.files.map((file) => `<li><strong>${esc(file.label)}</strong>: ${file.newCount} new, ${file.duplicateCount} ${file.duplicateCount === 1 ? 'duplicate' : 'duplicates'}, ${file.invalidCount} invalid</li>`).join('');
+    preview.innerHTML = `<p><strong>${pendingImport.trails.length} new ${pendingImport.trails.length === 1 ? 'trail' : 'trails'} ready to import.</strong> ${pendingImport.duplicates} ${pendingImport.duplicates === 1 ? 'duplicate was' : 'duplicates were'} skipped.</p><ul>${details}</ul>${pendingImport.invalidRows ? '<p>Invalid rows need a claim and source title. Export them again after fixing those fields.</p>' : ''}`;
+    confirmButton.disabled = pendingImport.trails.length === 0;
+  } catch {
+    pendingImport = null;
+    preview.innerHTML = '<p>These files could not be read. Choose CSV files exported from Claim Source Trail.</p>';
+    confirmButton.disabled = true;
+  }
+}
+
+function confirmImport(): void {
+  if (!pendingImport?.trails.length) return;
+  const imported = pendingImport.trails;
+  const importedIds = new Set(imported.map((trail) => trail.id));
+  trails = [...imported, ...trails];
+  try { saveTrails(trails, storageScope); } catch { announce('Could not import files. Check this browser’s storage settings.'); return; }
+  document.querySelector<HTMLDialogElement>('#import-dialog')?.close();
+  pendingImport = null;
+  render();
+  announce(`${imported.length} ${imported.length === 1 ? 'trail' : 'trails'} imported.`, 'Undo import', () => {
+    trails = trails.filter((trail) => !importedIds.has(trail.id));
+    saveTrails(trails, storageScope);
+    render();
+    announce('Import removed.');
+  });
 }
 
 function saveEditor(event: SubmitEvent): void {

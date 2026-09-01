@@ -256,7 +256,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn page_view_limit_uses_first_forwarded_ip_and_keeps_clients_separate() {
+    async fn claim_page_count_rate_limit_uses_first_forwarded_ip_and_returns_retry_after() {
         let (app, _) = test_app().await;
 
         for _ in 0..40 {

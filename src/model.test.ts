@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readyRate, statusLabel, toCsv, toMarkdown, trailStatus, type Trail } from './model';
+import { previewTrailImports, readyRate, statusLabel, toCsv, toMarkdown, trailStatus, type Trail } from './model';
 
 const complete: Trail = {
   id: '1', claim: 'Archives shape public memory.', sourceTitle: 'Archive Fever', authors: 'Jacques Derrida',
@@ -12,7 +12,7 @@ describe('trailStatus', () => {
   it('distinguishes a spot-checkable trail from missing reasoning links', () => {
     expect(trailStatus(complete)).toBe('ready');
     expect(trailStatus({ ...complete, locator: '' })).toBe('needs-locator');
-    expect(statusLabel(trailStatus({ ...complete, reason: '' }))).toContain('reasoning');
+    expect(statusLabel(trailStatus({ ...complete, reason: '' }))).toContain('source matters');
   });
 
   it('computes classroom readiness without calling it truth verification', () => {
@@ -32,5 +32,23 @@ describe('exports', () => {
     const output = toCsv([{ ...complete, claim: 'A claim, with a comma' }]);
     expect(output).toContain('"A claim, with a comma"');
     expect(output.split('\n')).toHaveLength(3);
+  });
+
+  it('previews labeled CSV submissions and skips duplicates', () => {
+    const csv = toCsv([complete]);
+    const preview = previewTrailImports([
+      { name: 'Ada Lovelace.csv', text: csv },
+      { name: 'Grace Hopper.csv', text: csv.replace('Archives shape public memory.', 'Catalogues shape access.') }
+    ], [complete]);
+    expect(preview.trails).toHaveLength(1);
+    expect(preview.duplicates).toBe(1);
+    expect(preview.invalidRows).toBe(0);
+    expect(preview.trails[0].importedFrom).toBe('Grace Hopper');
+  });
+
+  it('reports malformed or incomplete submission rows before import', () => {
+    const preview = previewTrailImports([{ name: 'broken.csv', text: 'claim,authors\nOnly a claim,Student' }], []);
+    expect(preview.trails).toEqual([]);
+    expect(preview.invalidRows).toBe(1);
   });
 });

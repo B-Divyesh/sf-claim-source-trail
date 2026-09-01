@@ -1,4 +1,4 @@
-const CACHE = 'claim-source-trail-v3';
+const CACHE = 'claim-source-trail-v4';
 const SHELL = [
   '/', '/privacy', '/terms', '/404.html', '/404.css',
   '/assets/hero-trail.webp', '/assets/hero-trail-640.webp', '/assets/social-preview.webp',

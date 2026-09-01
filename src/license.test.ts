@@ -40,4 +40,16 @@ describe('Instructor kit licensing', () => {
     await expect(verification).resolves.toEqual({ unlocked: false, notice: '' });
     expect(localStorage.getItem(LICENSE_VERDICT_KEY)).toBeNull();
   });
+
+  it('locks the kit when Sociobot changes a valid license to inactive @claim:inactive-license-lock', async () => {
+    restoreLicense('license-that-changes');
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: true, reason: 'ok' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ valid: false, reason: 'revoked' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(verifyLicense(true)).resolves.toMatchObject({ unlocked: true });
+    await expect(verifyLicense(true)).resolves.toMatchObject({ unlocked: false, notice: 'License no longer active.' });
+    expect(cachedLicenseState()).toEqual({ unlocked: false, notice: 'License no longer active.' });
+  });
 });
