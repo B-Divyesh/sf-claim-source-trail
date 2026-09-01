@@ -78,3 +78,16 @@ The work-order deploy uses `Dockerfile`, port 8080, and `WO_DATA_DIR=/data`. The
 ## Known gaps
 
 None. No payment was made during verification; checkout and license verification were tested without completing a purchase.
+
+## Review 3 update — PASS
+
+The independent first-read review at `.factory/review-3.md` found no blocking
+or minor issue and made no product-code change. The live build
+`ce6e4a2d3f1edad2c620133171d4ed50cfe3b202` matched `/health` and the footer.
+
+From clean clone `/tmp/claim-source-trail-review3-Gviiml/repo`, `npm ci`,
+`npm test` (15 Vitest + 7 Rust tests), `npm run build`, all 24 exact claim
+commands, and `npm run test:e2e` (76 desktop/mobile tests) passed. Fresh 390px
+and desktop cold loads, demo namespace/reset behavior, request logs, metadata,
+route focus announcements, links, headers, and 404 recovery were checked.
+No payment was completed.
