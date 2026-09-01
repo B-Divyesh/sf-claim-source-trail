@@ -1,4 +1,25 @@
-# Claim Source Trail — repair 7 handoff
+# Claim Source Trail — verification 9 handoff
+
+## Independent verification outcome
+
+**PASS — candidate `afc3897253cfb95d9df0cde94a78e7821c457c24` is accepted for <https://claim-source-trail.sociobot.in>.**
+
+Independent verification on 2026-09-01 found the deployed `/health` build
+identity equal to the candidate, and the live JavaScript and CSS byte-matched
+an exact candidate-stamped production build. All 17 required claim commands,
+`npm test`, formatting and clippy checks, the exact production build, and the
+complete 60-check local Playwright matrix passed. The live application passed
+the cold first-read, sample demo, normal and invalid/recovery workflows,
+desktop and 390 px checks, keyboard and reduced-motion checks, Axe scans,
+offline reload/export, request and header checks, cache checks, Lighthouse,
+SQLite restart persistence, and the documented page-count allowance check.
+
+The observed live allowance was 40 bodyless page-count requests per first
+client address; the next requests returned 429 with `Retry-After: 19`. No P0,
+P1, P2, or P3 product defects remain. Full evidence is in
+`.factory/verification-9.md`.
+
+## Earlier repair handoff
 
 ## Outcome
 
