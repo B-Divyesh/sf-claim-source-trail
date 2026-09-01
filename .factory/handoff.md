@@ -53,6 +53,18 @@ BASE_URL=https://claim-source-trail.sociobot.in npm run test:e2e
 
 The live health build equals the final pushed `main` revision, the served JavaScript and CSS hashes equal a clean build stamped with that revision, all 60 browser checks pass live, and the live limiter returns 429 with `Retry-After` after its 40-request allowance while accepting a separate first-hop client. Exact final SHA and asset hashes are also reported in the work-order completion response after the immutable deployment check.
 
+The functional repair revision `770fb7403a8a572e34d681d3292cd46d359b61c6` was deployed and independently checked before this final handoff update:
+
+- `/health` returned that full revision.
+- Live `index-Bm77DS4A.js` SHA-256 was `1e3e70dc6406b2970966c7c5f3ab8d12b349514498f6a04422f34dec43320739`, byte-identical to a clean build stamped with the revision.
+- Live `index-63NSupJp.css` SHA-256 was `fc68b92dc167350b22803462a7ea71e9b47d35d8a66b3e4af9fa55fe4448a0d2`, also byte-identical.
+- Live Playwright passed 60/60 at desktop and 390×844. The route-wide measurement found no undersized controls, including **Art details**, 404 **Demo**, and 404 **Terms**.
+- A live 100-request page-count burst returned 40×204 and 60×429 with `Retry-After: 19`; a distinct first-hop client returned 204; health returned 100/100 HTTP 200.
+- The live URL verifier passed after the deliberate limiter exercise received one refill interval: 200 in 620 ms with zero console/page errors and all structural accessibility checks present.
+- HTTP redirects permanently to HTTPS; the designed unknown route returns 404; live security and cache headers match the local response-policy evidence.
+
+The final handoff-only revision is rebuilt, redeployed, and checked for the same health/asset identity after this document is committed.
+
 ## Run
 
 ```bash
